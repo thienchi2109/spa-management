@@ -1,0 +1,21 @@
+Tên thuốc,Hoạt chất,Hàm lượng,Dạng bào chế,Đơn vị tính,Nhà sản xuất,Nước sản xuất,Số đăng ký,Nhà cung cấp,Giá nhập,Giá bán,Vị trí kho,Ngưỡng tồn kho,Số lô,Ngày hết hạn,Tồn kho
+Paracetamol 500mg,Paracetamol,500mg,Viên nén,Hộp,DHG Pharma,Việt Nam,VD-12345-21,Công ty Dược Hậu Giang,45000,55000,Tủ A - Kệ 1,50,PCL500-01,31/12/2027,250
+Amoxicillin 500mg,Amoxicillin,500mg,Viên nang,Hộp,Traphaco,Việt Nam,VD-23456-22,Công ty Cổ phần Traphaco,85000,105000,Tủ A - Kệ 2,50,AMX500-05,31/08/2026,45
+Berberin 10mg,Berberin,10mg,Viên nén,Chai,OPC,Việt Nam,VD-34567-23,Công ty Dược phẩm OPC,15000,22000,Tủ B - Kệ 1,100,BBR10-11,30/06/2028,500
+Panadol Extra,Paracetamol & Caffeine,500mg + 65mg,Viên nén,Hộp,GSK,Anh,VN-11223-19,GlaxoSmithKline (GSK),98000,120000,Tủ A - Kệ 1,40,PND-E-02,28/02/2027,180
+Efferalgan 500mg,Paracetamol,500mg,Viên sủi,Hộp,UPSA SAS,Pháp,VN-44556-20,Bristol-Myers Squibb,35000,48000,Tủ A - Kệ 1,30,EFR500-09,31/07/2025,120
+Decolgen Forte,Paracetamol & Phenylpropanolamine,325mg + 25mg,Viên nang,Hộp,United Pharma,Việt Nam,VD-56789-21,United Pharma,65000,80000,Tủ C - Kệ 3,50,DCL-F-21,30/04/2028,300
+Tiffy Dey,Paracetamol & Chlorpheniramine,325mg + 2mg,Viên nén,Hộp,Thái Nakorn Patana,Thái Lan,VN-77889-22,Thái Nakorn Patana,40000,52000,Tủ C - Kệ 3,40,TFY-D-15,31/05/2026,210
+Strepsils Original,Amylmetacresol & Dichlorobenzyl alcohol,0.6mg + 1.2mg,Viên ngậm,Hộp,Reckitt Benckiser,Anh,VN-99001-23,Reckitt Benckiser,25000,35000,Kệ D - Ngăn 1,30,STP-O-01,31/03/2027,150
+Phosphalugel,Aluminium phosphate,20%,Gel uống,Hộp,Sanofi,Pháp,VN-12121-19,Sanofi,88000,110000,Tủ B - Kệ 2,25,PHG-L-08,30/11/2026,90
+Smecta,Diosmectite,3g,Bột pha hỗn dịch,Hộp,Beaufour Ipsen,Pháp,VN-34343-20,Beaufour Ipsen Industrie,110000,135000,Tủ B - Kệ 2,20,SMC-T-04,31/10/2027,75
+Cataflam 50mg,Diclofenac,50mg,Viên nén,Hộp,Novartis,Thụy Sĩ,VN-56565-21,Novartis,55000,70000,Tủ A - Kệ 3,20,CTF50-07,31/01/2026,60
+Alaxan,Ibuprofen & Paracetamol,200mg + 325mg,Viên nang,Hộp,United Pharma,Việt Nam,VD-78787-22,United Pharma,30000,42000,Tủ A - Kệ 3,40,ALX-N-19,30/09/2027,190
+Klamentin 625mg,Amoxicillin & Clavulanic acid,500mg + 125mg,Viên nén,Hộp,DHG Pharma,Việt Nam,VD-90909-23,Dược Hậu Giang,180000,210000,Tủ A - Kệ 2,30,KLM625-03,31/05/2025,30
+Cetirizin 10mg,Cetirizine,10mg,Viên nén,Hộp,Stada,Đức,VN-24680-20,Stada,28000,40000,Tủ C - Kệ 4,50,CTZ10-12,31/12/2028,400
+Loratadin 10mg,Loratadine,10mg,Viên nén,Hộp,DHG Pharma,Việt Nam,VD-13579-21,Dược Hậu Giang,25000,38000,Tủ C - Kệ 4,50,LRT10-06,30/11/2028,350
+Medrol 16mg,Methylprednisolone,16mg,Viên nén,Hộp,Pfizer,Mỹ,VN-11335-19,Pfizer,150000,180000,Tủ A - Kệ 4,20,MDR16-01,31/08/2025,55
+Salbutamol 2mg,Salbutamol,2mg,Viên nén,Hộp,TV.PHARM,Việt Nam,VD-22446-22,Công ty Cổ phần Dược phẩm TV.PHARM,18000,25000,Tủ C - Kệ 1,25,SLB2-08,31/07/2026,80
+Omeprazol 20mg,Omeprazole,20mg,Viên nang,Hộp,AstraZeneca,Anh,VN-66880-21,AstraZeneca,250000,310000,Tủ B - Kệ 3,30,OMP20-14,30/04/2027,130
+Vitamin C 500mg,Ascorbic Acid,500mg,Viên nén,Chai,Imexpharm,Việt Nam,VD-11223-19,Công ty Cổ phần Dược phẩm Imexpharm,20000,28000,Kệ D - Ngăn 2,100,VTC500-18,31/03/2028,600
+Eugica,Eucalyptol & Menthol,5mg + 1mg,Viên ngậm,Hộp,DHG Pharma,Việt Nam,VD-33445-20,Công ty Cổ phần Dược Hậu Giang,35000,45000,Kệ D - Ngăn 1,50,EGC-F-09,31/10/2026,220
