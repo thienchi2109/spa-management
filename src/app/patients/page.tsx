@@ -38,9 +38,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PatientForm } from './components/patient-form';
 import { PatientDetail } from './components/patient-detail';
-import { addDoc, collection, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { seedAndFetchCollection } from '@/lib/firestore-utils';
+import { seedAndFetchCollection, addPatient, updatePatient, deletePatient } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
 
 const translateGender = (gender: Patient['gender']) => {
@@ -201,8 +199,8 @@ export default function PatientsPage() {
                 documents: [],
             };
 
-            // Use setDoc with custom ID instead of addDoc
-            await setDoc(doc(db, 'patients', patientId), patientToAdd);
+            // Use Google Sheets instead of Firestore
+            await addPatient(patientToAdd);
             setPatients(prev => [...prev, patientToAdd]);
             setIsCreateDialogOpen(false);
             toast({
@@ -221,7 +219,7 @@ export default function PatientsPage() {
 
     const handleDeletePatient = async (patientId: string, patientName: string) => {
         try {
-            await deleteDoc(doc(db, 'patients', patientId));
+            await deletePatient(patientId);
             setPatients(prev => prev.filter(patient => patient.id !== patientId));
             toast({
                 title: 'Xóa thành công',
@@ -239,10 +237,8 @@ export default function PatientsPage() {
     
     const handleUpdatePatient = async (updatedPatientData: Patient) => {
         try {
-            const patientRef = doc(db, "patients", updatedPatientData.id);
-            // We pass the entire object, but Firestore's updateDoc will only update fields.
-            // For nested objects like `documents`, it's safer to use setDoc with merge, but update should work for array replacement.
-            await updateDoc(patientRef, updatedPatientData);
+            // Use Google Sheets instead of Firestore
+            await updatePatient(updatedPatientData);
 
             setPatients(prevPatients => 
                 prevPatients.map(p =>

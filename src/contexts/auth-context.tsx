@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Staff } from '@/lib/types';
 import { staff as mockStaff } from '@/lib/mock-data';
-import { seedAndFetchCollection } from '@/lib/firestore-utils';
+import { seedAndFetchCollection } from '@/lib/sheets-utils';
 
 interface AuthContextType {
   currentUser: Staff | null;

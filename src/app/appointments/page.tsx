@@ -32,9 +32,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { addDoc, collection, doc, updateDoc, writeBatch, deleteDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { seedAndFetchCollection } from '@/lib/firestore-utils';
+import { 
+  seedAndFetchCollection, 
+  addAppointment, 
+  updateAppointment, 
+  deleteAppointment,
+  addPatient,
+  updatePatient,
+  addInvoice,
+  updateInvoice,
+  addMedicalRecord
+} from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -149,8 +157,7 @@ export default function AppointmentsPage() {
             ...newAppointmentData,
             status: 'Scheduled' as Appointment['status'],
         };
-        const docRef = await addDoc(collection(db, 'appointments'), appointmentToAdd);
-        const newAppointment = { ...appointmentToAdd, id: docRef.id };
+        const newAppointment = await addAppointment(appointmentToAdd);
         setAppointments(prev => [...prev, newAppointment]);
         toast({
             title: 'Lưu thành công',
@@ -177,8 +184,10 @@ export default function AppointmentsPage() {
     });
 
     try {
-        const appointmentRef = doc(db, 'appointments', appointmentId);
-        await updateDoc(appointmentRef, { status: newStatus });
+        // Update appointment in Google Sheets
+        if (appointmentForInvoice) {
+            await updateAppointment(appointmentForInvoice);
+        }
         setAppointments(updatedAppointments);
 
         toast({
@@ -190,10 +199,10 @@ export default function AppointmentsPage() {
         if (newStatus === 'Completed' && appointmentForInvoice) {
             const patientToUpdate = patients.find(p => p.name === appointmentForInvoice!.patientName);
             if (patientToUpdate) {
-                const patientRef = doc(db, 'patients', patientToUpdate.id);
-                await updateDoc(patientRef, { lastVisit: appointmentForInvoice.date });
+                const updatedPatient = { ...patientToUpdate, lastVisit: appointmentForInvoice.date };
+                await updatePatient(updatedPatient);
                 
-                const updatedPatients = patients.map(p => p.id === patientToUpdate.id ? { ...p, lastVisit: appointmentForInvoice!.date } : p);
+                const updatedPatients = patients.map(p => p.id === patientToUpdate.id ? updatedPatient : p);
                 setPatients(updatedPatients);
             }
         }
@@ -209,8 +218,13 @@ export default function AppointmentsPage() {
 
   const handleUpdateInvoiceStatus = async (invoiceId: string, newStatus: Invoice['status']) => {
     try {
-        const invoiceRef = doc(db, 'invoices', invoiceId);
-        await updateDoc(invoiceRef, { status: newStatus });
+        // Find and update invoice in Google Sheets
+        const invoiceToUpdate = invoices.find(inv => inv.id === invoiceId);
+        if (invoiceToUpdate) {
+            const updatedInvoice = { ...invoiceToUpdate, status: newStatus };
+            await updateInvoice(updatedInvoice);
+        }
+        
         const updatedInvoices = invoices.map(inv =>
           inv.id === invoiceId ? { ...inv, status: newStatus } : inv
         );
@@ -242,14 +256,14 @@ export default function AppointmentsPage() {
             documents: [],
         };
 
-        // Use setDoc with custom ID instead of addDoc
-        await setDoc(doc(db, 'patients', patientId), patientToAdd);
-        setPatients(prev => [...prev, patientToAdd]);
+        // Use Google Sheets instead of Firestore
+        const newPatient = await addPatient(patientToAdd);
+        setPatients(prev => [...prev, newPatient]);
         toast({
             title: 'Thêm thành công',
-            description: `Hồ sơ bệnh nhân ${patientToAdd.name} đã được tạo với mã ${patientId}.`,
+            description: `Hồ sơ bệnh nhân ${newPatient.name} đã được tạo với mã ${patientId}.`,
         });
-        return patientToAdd;
+        return newPatient;
     } catch (error) {
         console.error("Error adding patient: ", error);
         toast({
@@ -279,8 +293,9 @@ export default function AppointmentsPage() {
             amount: totalAmount,
             status: status,
         };
-        const docRef = await addDoc(collection(db, 'invoices'), invoiceToAdd);
-        const newInvoice = { ...invoiceToAdd, id: docRef.id };
+        
+        // Use Google Sheets instead of Firestore
+        const newInvoice = await addInvoice(invoiceToAdd);
         setInvoices(prev => [...prev, newInvoice]);
         setInvoiceCandidate(null);
         toast({
@@ -306,8 +321,8 @@ export default function AppointmentsPage() {
             patientId: patient?.id || '',
         };
         
-        const docRef = await addDoc(collection(db, 'medicalRecords'), medicalRecordToAdd);
-        const newMedicalRecord = { ...medicalRecordToAdd, id: docRef.id };
+        // Use Google Sheets instead of Firestore
+        const newMedicalRecord = await addMedicalRecord(medicalRecordToAdd);
         setMedicalRecords(prev => [...prev, newMedicalRecord]);
         
         toast({
@@ -344,8 +359,8 @@ export default function AppointmentsPage() {
 
   const handleDeleteAppointment = async (appointmentId: string) => {
     try {
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'appointments', appointmentId));
+      // Delete from Google Sheets
+      await deleteAppointment(appointmentId);
 
       // Update local state
       const updatedAppointments = appointments.filter(app => app.id !== appointmentId);

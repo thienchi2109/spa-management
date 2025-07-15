@@ -2,14 +2,14 @@ export interface Patient {
   id: string;
   name: string;
   birthYear: number;
-  gender: 'Male' | 'Female' | 'Other';
+  gender: 'Nam' | 'Nữ' | 'Male' | 'Female' | 'Other';
   address: string;
   phone: string;
   citizenId: string;
   weight: number;
   lastVisit: string;
   avatarUrl: string;
-  medicalHistory?: string;
+  medicalHistory?: string[] | string;
   documents?: PatientDocument[];
 }
 
@@ -20,7 +20,7 @@ export interface Appointment {
   date: string;
   startTime: string;
   endTime: string;
-  status: 'Scheduled' | 'Completed' | 'Cancelled';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'Scheduled' | 'Completed' | 'Cancelled';
   notes?: string;
 }
 
@@ -46,9 +46,9 @@ export interface Medication {
 }
 
 export interface InvoiceItem {
-  id: string;
-  description: string;
-  amount: number;
+  name: string;
+  quantity: number;
+  price: number;
 }
 
 export interface Invoice {
@@ -57,7 +57,7 @@ export interface Invoice {
   date: string;
   items: InvoiceItem[];
   amount: number;
-  status: 'Paid' | 'Pending' | 'Overdue';
+  status: 'paid' | 'pending' | 'overdue' | 'Paid' | 'Pending' | 'Overdue';
 }
 
 export interface PatientDocument {

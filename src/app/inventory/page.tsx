@@ -32,13 +32,13 @@ import {
 import { medications as mockMedications } from '@/lib/mock-data';
 import { PlusCircle, Loader2, Search, Filter, Grid, List, Package } from 'lucide-react';
 import type { Medication } from '@/lib/types';
-import { seedAndFetchCollection, updateMedication, deleteMedication } from '@/lib/firestore-utils';
+import { seedAndFetchCollection, updateMedication, deleteMedication } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
 import { MedicationCard } from './components/medication-card';
 import { CSVUploadDialog } from './components/csv-upload-dialog';
 import { MedicationDetailDialog } from './components/medication-detail-dialog';
 import { MedicationEditDialog } from './components/medication-edit-dialog';
-import type { BatchImportResult } from '@/lib/firestore-utils';
+import type { BatchImportResult } from '@/lib/sheets-utils';
 
 const getExpiryStatus = (expiryDate: string) => {
   const today = new Date('2024-07-30'); // Use static date to prevent hydration errors
