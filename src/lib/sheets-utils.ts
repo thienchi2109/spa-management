@@ -6,8 +6,7 @@ import type {
   Medication, 
   Invoice, 
   Staff, 
-  MedicalRecord, 
-  Prescription,
+  MedicalRecord,
   SpaService
 } from './types';
 
@@ -101,16 +100,10 @@ const STAFF_HEADERS: (keyof Staff)[] = [
 
 const MEDICAL_RECORD_HEADERS: (keyof MedicalRecord)[] = [
   'id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName',
-  'symptoms', 'diagnosis', 'treatment', 'prescription', 'nextAppointment', 'notes'
+  'symptoms', 'diagnosis', 'treatment', 'products', 'nextAppointment', 'notes'
 ];
 
-const PRESCRIPTION_HEADERS: (keyof Prescription)[] = [
-  'id', 'patientId', 'patientName', 'patientAge', 'patientGender', 'patientWeight',
-  'patientAddress', 'doctorId', 'doctorName', 'doctorLicense', 'medicalRecordId',
-  'appointmentId', 'date', 'diagnosis', 'symptoms', 'items', 'totalCost',
-  'doctorNotes', 'nextAppointment', 'status', 'validUntil', 'clinicInfo',
-  'createdAt', 'updatedAt'
-];
+
 
 const SERVICE_HEADERS: (keyof SpaService)[] = [
   'id', 'name', 'category', 'description', 'duration', 'price', 'discountPrice',
@@ -155,7 +148,6 @@ function getHeaders<T>(collectionName: string): (keyof T)[] {
     'invoices': INVOICE_HEADERS,
     'staff': STAFF_HEADERS,
     'medicalRecords': MEDICAL_RECORD_HEADERS,
-    'prescriptions': PRESCRIPTION_HEADERS,
   };
   
   return headerMap[collectionName] || [];

@@ -25,7 +25,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log('Attempting login with:', { email, password });
+
       
       // Use the auth context login function (which uses Google Sheets)
       const success = await login(email, password);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -18,50 +18,35 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Activity, Calendar, Users, DollarSign, Loader2, TrendingUp } from 'lucide-react';
-import type { Patient, Appointment, Medication, Invoice } from '@/lib/types';
+import type { Customer, Appointment, Invoice } from '@/lib/types';
 import { formatDate, calculateAge } from '@/lib/utils';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useData } from '@/contexts/data-context';
+import { PerformanceMonitor } from '@/components/performance-monitor';
 
-const translateGender = (gender: Patient['gender']) => {
+const translateGender = (gender: Customer['gender']) => {
     switch(gender) {
         case 'Male': return 'Nam';
         case 'Female': return 'Nữ';
         case 'Other': return 'Khác';
+        case 'Nam': return 'Nam';
+        case 'Nữ': return 'Nữ';
         default: return gender;
     }
 }
 
 export default function Dashboard() {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use cached data from context
+  const {
+    customers,
+    appointments,
+    invoices,
+    staff,
+    isLoadingCustomers,
+    isLoadingAppointments,
+    isLoadingInvoices
+  } = useData();
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [patientsSnapshot, appointmentsSnapshot, medicationsSnapshot, invoicesSnapshot] = await Promise.all([
-          getDocs(collection(db, 'patients')),
-          getDocs(collection(db, 'appointments')),
-          getDocs(collection(db, 'medications')),
-          getDocs(collection(db, 'invoices')),
-        ]);
-        
-        setPatients(patientsSnapshot.docs.map(doc => ({ ...doc.data() as Patient, id: doc.id })));
-        setAppointments(appointmentsSnapshot.docs.map(doc => ({ ...doc.data() as Appointment, id: doc.id })));
-        setMedications(medicationsSnapshot.docs.map(doc => ({ ...doc.data() as Medication, id: doc.id })));
-        setInvoices(invoicesSnapshot.docs.map(doc => ({ ...doc.data() as Invoice, id: doc.id })));
-
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  const loading = isLoadingCustomers || isLoadingAppointments || isLoadingInvoices;
 
   const today = new Date();
   const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
@@ -141,8 +126,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 md:gap-8">
-      <h1 className="text-2xl font-headline font-bold">Bảng điều khiển</h1>
+    <>
+      <div className="flex flex-1 flex-col gap-4 md:gap-8">
+        <h1 className="text-2xl font-headline font-bold">Bảng điều khiển</h1>
       
       {/* Main KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
@@ -189,9 +175,9 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{patients.length}</div>
+            <div className="text-2xl font-bold">{customers.length}</div>
             <p className="text-xs text-muted-foreground">
-              Tổng số bệnh nhân
+              Tổng số khách hàng
             </p>
           </CardContent>
         </Card>
@@ -309,9 +295,9 @@ export default function Dashboard() {
         <Card className="xl:col-span-2">
           <CardHeader className="flex flex-row items-center">
             <div className="grid gap-2">
-              <CardTitle>Bệnh nhân gần đây</CardTitle>
+              <CardTitle>Khách hàng gần đây</CardTitle>
               <CardDescription>
-                Tổng quan về các bệnh nhân đã khám gần đây.
+                Tổng quan về các khách hàng đã đến gần đây.
               </CardDescription>
             </div>
           </CardHeader>
@@ -319,27 +305,27 @@ export default function Dashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Bệnh nhân</TableHead>
+                  <TableHead>Khách hàng</TableHead>
                   <TableHead className="hidden xl:table-column">
                     Giới tính
                   </TableHead>
-                  <TableHead className="text-right">Lần khám cuối</TableHead>
+                  <TableHead className="text-right">Lần đến cuối</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patients.slice(0, 5).map((patient) => (
-                  <TableRow key={patient.id}>
+                {customers.slice(0, 5).map((customer) => (
+                  <TableRow key={customer.id}>
                     <TableCell>
-                      <div className="font-medium">{patient.name}</div>
+                      <div className="font-medium">{customer.name}</div>
                       <div className="hidden text-sm text-muted-foreground md:inline">
-                        Tuổi: {calculateAge(patient.birthYear)}
+                        Tuổi: {calculateAge(customer.birthYear)}
                       </div>
                     </TableCell>
                     <TableCell className="hidden xl:table-column">
-                      {translateGender(patient.gender)}
+                      {translateGender(customer.gender)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatDate(patient.lastVisit)}
+                      {formatDate(customer.lastVisit)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -388,5 +374,9 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
+    
+    {/* Performance Monitor */}
+    <PerformanceMonitor />
+  </>
   );
 }

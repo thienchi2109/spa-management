@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { Appointment, Staff, Invoice, MedicalRecord } from '@/lib/types';
+import type { Appointment, Staff, Invoice } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MedicalRecordForm } from './medical-record-form';
+
 
 const getStatusInfo = (status: Appointment['status']): {
     text: string,
@@ -88,13 +88,11 @@ interface AppointmentDetailProps {
   onUpdateStatus: (appointmentId: string, newStatus: Appointment['status']) => void;
   onUpdateInvoiceStatus: (invoiceId: string, newStatus: Invoice['status']) => void;
   onCreateInvoice: (appointment: Appointment) => void;
-  onSaveMedicalRecord: (recordData: Omit<MedicalRecord, 'id'>) => Promise<void>;
 }
 
-export function AppointmentDetail({ appointment, staffMember, invoice, onUpdateStatus, onUpdateInvoiceStatus, onCreateInvoice, onSaveMedicalRecord }: AppointmentDetailProps) {
+export function AppointmentDetail({ appointment, staffMember, invoice, onUpdateStatus, onUpdateInvoiceStatus, onCreateInvoice }: AppointmentDetailProps) {
   const [currentStatus, setCurrentStatus] = useState<Appointment['status']>(appointment.status);
   const [currentInvoiceStatus, setCurrentInvoiceStatus] = useState<Invoice['status'] | undefined>(invoice?.status);
-  const [showMedicalRecordForm, setShowMedicalRecordForm] = useState(false);
   const statusInfo = getStatusInfo(currentStatus);
 
   const handleSaveChanges = () => {
@@ -104,34 +102,7 @@ export function AppointmentDetail({ appointment, staffMember, invoice, onUpdateS
     }
   };
 
-  const handleSaveMedicalRecord = async (recordData: Omit<MedicalRecord, 'id'>) => {
-    await onSaveMedicalRecord(recordData);
-    setShowMedicalRecordForm(false);
-  };
 
-  const handleCreateInvoiceFromMedicalForm = () => {
-    setShowMedicalRecordForm(false); // Close medical record form
-    onCreateInvoice(appointment); // Open invoice form
-  };
-
-  // If showing medical record form, render it instead of the main dialog
-  if (showMedicalRecordForm) {
-    return (
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="font-headline text-xl">
-            Hồ sơ bệnh án - {appointment.patientName}
-          </DialogTitle>
-        </DialogHeader>
-        <MedicalRecordForm
-          appointment={appointment}
-          onSave={handleSaveMedicalRecord}
-          onClose={() => setShowMedicalRecordForm(false)}
-          onCreateInvoice={!invoice ? handleCreateInvoiceFromMedicalForm : undefined}
-        />
-      </DialogContent>
-    );
-  }
 
   return (
       <DialogContent className="sm:max-w-md">
@@ -255,28 +226,13 @@ export function AppointmentDetail({ appointment, staffMember, invoice, onUpdateS
                  </div>
             )}
         </div>
-        <DialogFooter className="flex justify-between items-center">
-          {currentStatus === 'Completed' ? (
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setShowMedicalRecordForm(true)}
-              className="flex items-center gap-2"
-            >
-              <Stethoscope className="h-4 w-4" />
-              Kết quả khám bệnh
-            </Button>
-          ) : (
-            <div></div> // Empty div to maintain layout
-          )}
-          <div className="flex gap-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Hủy</Button>
-            </DialogClose>
-            <DialogClose asChild>
-              <Button type="button" onClick={handleSaveChanges}>Lưu thay đổi</Button>
-            </DialogClose>
-          </div>
+        <DialogFooter className="flex justify-end gap-2">
+          <DialogClose asChild>
+            <Button type="button" variant="outline">Hủy</Button>
+          </DialogClose>
+          <DialogClose asChild>
+            <Button type="button" onClick={handleSaveChanges}>Lưu thay đổi</Button>
+          </DialogClose>
         </DialogFooter>
       </DialogContent>
   );

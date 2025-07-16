@@ -77,9 +77,9 @@ function getDeleteWarnings(medication: Medication): DeleteWarning[] {
     });
   }
 
-  // Prescription warning (simulated - in real app would check actual prescriptions)
-  const hasActivePrescriptions = Math.random() > 0.7; // Simulate 30% chance
-  if (hasActivePrescriptions) {
+  // Usage warning (simulated - in real app would check actual usage in medical records)
+  const hasActiveUsage = Math.random() > 0.7; // Simulate 30% chance
+  if (hasActiveUsage) {
     warnings.push({
       type: 'error',
       message: 'Thuốc đang được sử dụng trong đơn thuốc hiện tại',

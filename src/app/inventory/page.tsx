@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -31,12 +31,14 @@ import {
 
 import { PlusCircle, Loader2, Search, Filter, Grid, List, Package } from 'lucide-react';
 import type { SpaService } from '@/lib/types';
-import { getCollectionData, updateService, deleteService } from '@/lib/sheets-utils';
+import { updateService, deleteService } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
+import { useData } from '@/contexts/data-context';
 import { ServiceCard } from './components/service-card';
 import { CSVUploadDialog } from './components/csv-upload-dialog';
 import { ServiceDetailDialog } from './components/service-detail-dialog';
 import { ServiceEditDialog } from './components/service-edit-dialog';
+import { LazyCard } from '@/components/ui/lazy-loader';
 import type { BatchImportResult } from '@/lib/sheets-utils';
 
 const getServiceStatus = (service: SpaService) => {
@@ -50,13 +52,20 @@ const getServiceStatus = (service: SpaService) => {
 };
 
 export default function InventoryPage() {
-  const [services, setServices] = useState<SpaService[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
+
+  // Use cached data from context
+  const {
+    services,
+    isLoadingServices: loading,
+    refetchServices,
+    updateServiceOptimistic,
+    deleteServiceOptimistic
+  } = useData();
 
   // State for dialogs
   const [selectedService, setSelectedService] = useState<SpaService | null>(null);
@@ -106,32 +115,11 @@ export default function InventoryPage() {
     return cats.sort();
   }, [services]);
 
-  const loadData = useCallback(async () => {
-    try {
-        const servicesData = await getCollectionData<SpaService>('services');
-        console.log('Raw services data from Google Sheets:', servicesData);
-        setServices(servicesData);
-    } catch (error) {
-        console.error("Failed to load services from Google Sheets", error);
-         toast({
-            variant: 'destructive',
-            title: 'Lỗi tải dữ liệu',
-            description: 'Không thể tải dữ liệu dịch vụ từ Google Sheets.'
-        });
-    } finally {
-        setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
   const handleImportComplete = useCallback((result: BatchImportResult) => {
     if (result.success && result.successfulRecords > 0) {
-      loadData();
+      refetchServices();
     }
-  }, [loadData]);
+  }, [refetchServices]);
 
   // Handlers for viewing details
   const handleViewDetails = (service: SpaService) => {
@@ -147,9 +135,10 @@ export default function InventoryPage() {
 
   const handleUpdateService = async (updatedService: SpaService) => {
     try {
-      await updateService(updatedService);
+      await updateServiceOptimistic(updatedService, async () => {
+        return await updateService(updatedService);
+      });
       toast({ title: 'Thành công', description: 'Thông tin dịch vụ đã được cập nhật.' });
-      loadData(); // Refresh data
     } catch (error) {
       console.error("Failed to update service:", error);
       toast({ variant: 'destructive', title: 'Lỗi', description: 'Không thể cập nhật thông tin dịch vụ.' });
@@ -165,9 +154,10 @@ export default function InventoryPage() {
   const handleConfirmDelete = async () => {
     if (!deletingService || !deletingService.id) return;
     try {
-      await deleteService(deletingService.id);
+      await deleteServiceOptimistic(deletingService.id, async () => {
+        return await deleteService(deletingService.id);
+      });
       toast({ title: 'Thành công', description: `Dịch vụ ${deletingService.name} đã được xóa.` });
-      loadData(); // Refresh data
       setDeletingService(null);
       setIsDeleteDialogOpen(false);
     } catch (error) {
@@ -296,14 +286,15 @@ export default function InventoryPage() {
                   ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                   : 'grid-cols-1'
               }`}>
-                {filteredServices.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    onView={handleViewDetails}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
+                {filteredServices.map((service, index) => (
+                  <LazyCard key={service.id} delay={index * 50}>
+                    <ServiceCard
+                      service={service}
+                      onView={handleViewDetails}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  </LazyCard>
                 ))}
               </div>
             )}

@@ -27,9 +27,7 @@ const mainNavItems = [
 const moreNavItems = [
   { href: '/patients', label: 'Khách hàng', icon: 'Users' },
   { href: '/staff', label: 'Kỹ thuật viên', icon: 'Stethoscope' },
-  { href: '/prescriptions', label: 'Đơn thuốc', icon: 'FileText' },
   { href: '/invoices', label: 'Hóa đơn', icon: 'FileText' },
-  { href: '/ai-assistant', label: 'Trợ lý AI', icon: 'Bot' },
 ];
 
 export function MobileFooterNav() {
@@ -37,12 +35,12 @@ export function MobileFooterNav() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/80 backdrop-blur-lg">
-      <div className="flex h-16 items-center justify-around">
+      <div className="flex h-20 items-center justify-around">
         {mainNavItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-1 p-2 text-xs ${
+            className={`flex flex-col items-center gap-1 p-2 text-sm ${
               pathname === item.href
                 ? 'text-primary'
                 : 'text-muted-foreground'

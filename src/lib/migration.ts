@@ -8,8 +8,7 @@ import type {
   Medication, 
   Invoice, 
   Staff, 
-  MedicalRecord, 
-  Prescription 
+  MedicalRecord
 } from './types';
 
 // Define headers for each collection
@@ -19,8 +18,7 @@ const COLLECTION_HEADERS = {
   medications: ['id', 'name', 'activeIngredient', 'concentration', 'dosageForm', 'unit', 'manufacturer', 'manufacturerCountry', 'registrationNumber', 'supplier', 'importPrice', 'sellPrice', 'storageLocation', 'minStockThreshold', 'batchNo', 'expiryDate', 'stock', 'status'] as (keyof Medication)[],
   invoices: ['id', 'patientName', 'date', 'items', 'amount', 'status'] as (keyof Invoice)[],
   staff: ['id', 'name', 'role', 'avatarUrl', 'phone', 'email', 'password', 'licenseNumber', 'licenseIssueDate', 'licenseIssuePlace', 'licenseExpiryDate'] as (keyof Staff)[],
-  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'prescription', 'nextAppointment', 'notes'] as (keyof MedicalRecord)[],
-  prescriptions: ['id', 'patientId', 'patientName', 'patientAge', 'patientGender', 'patientWeight', 'patientAddress', 'doctorId', 'doctorName', 'doctorLicense', 'medicalRecordId', 'appointmentId', 'date', 'diagnosis', 'symptoms', 'items', 'totalCost', 'doctorNotes', 'nextAppointment', 'status', 'validUntil', 'clinicInfo', 'createdAt', 'updatedAt'] as (keyof Prescription)[]
+  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'products', 'nextAppointment', 'notes'] as (keyof MedicalRecord)[]
 };
 
 export interface MigrationResult {
@@ -141,11 +139,7 @@ export async function migrateAllCollections(): Promise<MigrationSummary> {
         sheet: SHEET_CONFIG.SHEETS.medicalRecords, 
         headers: COLLECTION_HEADERS.medicalRecords 
       },
-      { 
-        firestore: 'prescriptions', 
-        sheet: SHEET_CONFIG.SHEETS.prescriptions, 
-        headers: COLLECTION_HEADERS.prescriptions 
-      }
+
     ];
     
     summary.totalCollections = collections.length;

@@ -11,8 +11,7 @@ const COLLECTION_HEADERS = {
   medications: ['id', 'name', 'activeIngredient', 'concentration', 'dosageForm', 'unit', 'manufacturer', 'manufacturerCountry', 'registrationNumber', 'supplier', 'importPrice', 'sellPrice', 'storageLocation', 'minStockThreshold', 'batchNo', 'expiryDate', 'stock', 'status'],
   invoices: ['id', 'patientName', 'date', 'items', 'amount', 'status'],
   staff: ['id', 'name', 'role', 'avatarUrl', 'phone', 'email', 'password', 'licenseNumber', 'licenseIssueDate', 'licenseIssuePlace', 'licenseExpiryDate'],
-  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'prescription', 'nextAppointment', 'notes'],
-  prescriptions: ['id', 'patientId', 'patientName', 'patientAge', 'patientGender', 'patientWeight', 'patientAddress', 'doctorId', 'doctorName', 'doctorLicense', 'medicalRecordId', 'appointmentId', 'date', 'diagnosis', 'symptoms', 'items', 'totalCost', 'doctorNotes', 'nextAppointment', 'status', 'validUntil', 'clinicInfo', 'createdAt', 'updatedAt']
+  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'products', 'nextAppointment', 'notes']
 };
 
 interface MigrationResult {
@@ -115,7 +114,7 @@ export async function POST(request: NextRequest) {
         { firestore: 'invoices', sheet: SHEET_CONFIG.SHEETS.invoices, headers: COLLECTION_HEADERS.invoices },
         { firestore: 'staff', sheet: SHEET_CONFIG.SHEETS.staff, headers: COLLECTION_HEADERS.staff },
         { firestore: 'medicalRecords', sheet: SHEET_CONFIG.SHEETS.medicalRecords, headers: COLLECTION_HEADERS.medicalRecords },
-        { firestore: 'prescriptions', sheet: SHEET_CONFIG.SHEETS.prescriptions, headers: COLLECTION_HEADERS.prescriptions }
+
       ];
       
       const summary: MigrationSummary = {

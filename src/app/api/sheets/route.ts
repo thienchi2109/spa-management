@@ -15,8 +15,7 @@ import type {
   Medication, 
   Invoice, 
   Staff, 
-  MedicalRecord, 
-  Prescription,
+  MedicalRecord,
   SpaService
 } from '@/lib/types';
 
@@ -28,8 +27,7 @@ const COLLECTION_HEADERS = {
   medications: ['id', 'name', 'activeIngredient', 'concentration', 'dosageForm', 'unit', 'manufacturer', 'manufacturerCountry', 'registrationNumber', 'supplier', 'importPrice', 'sellPrice', 'storageLocation', 'minStockThreshold', 'batchNo', 'expiryDate', 'stock', 'status'] as (keyof Medication)[],
   invoices: ['id', 'patientName', 'date', 'items', 'amount', 'status'] as (keyof Invoice)[],
   staff: ['id', 'name', 'role', 'avatarUrl', 'phone', 'email', 'password', 'licenseNumber', 'licenseIssueDate', 'licenseIssuePlace', 'licenseExpiryDate'] as (keyof Staff)[],
-  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'prescription', 'nextAppointment', 'notes'] as (keyof MedicalRecord)[],
-  prescriptions: ['id', 'patientId', 'patientName', 'patientAge', 'patientGender', 'patientWeight', 'patientAddress', 'doctorId', 'doctorName', 'doctorLicense', 'medicalRecordId', 'appointmentId', 'date', 'diagnosis', 'symptoms', 'items', 'totalCost', 'doctorNotes', 'nextAppointment', 'status', 'validUntil', 'clinicInfo', 'createdAt', 'updatedAt'] as (keyof Prescription)[],
+  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'products', 'nextAppointment', 'notes'] as (keyof MedicalRecord)[],
   services: ['id', 'name', 'category', 'description', 'duration', 'price', 'discountPrice', 'requiredStaff', 'equipment', 'roomType', 'preparationTime', 'cleanupTime', 'maxCapacity', 'ageRestriction', 'contraindications', 'benefits', 'aftercareInstructions', 'isActive'] as (keyof SpaService)[]
 };
 
@@ -42,7 +40,7 @@ function getSheetName(collection: string): string {
     'invoices': SHEET_CONFIG.SHEETS.invoices,
     'staff': SHEET_CONFIG.SHEETS.staff,
     'medicalRecords': SHEET_CONFIG.SHEETS.medicalRecords,
-    'prescriptions': SHEET_CONFIG.SHEETS.prescriptions,
+
     'services': SHEET_CONFIG.SHEETS.services,
   };
   

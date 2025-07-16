@@ -156,7 +156,7 @@ export default function SetupPage() {
                 { name: 'Invoices', desc: 'Hóa đơn' },
                 { name: 'Staff', desc: 'Nhân viên' },
                 { name: 'MedicalRecords', desc: 'Hồ sơ y tế' },
-                { name: 'Prescriptions', desc: 'Đơn thuốc' }
+
               ].map((sheet) => (
                 <div key={sheet.name} className="flex items-center gap-2 p-2 border rounded text-sm">
                   <FileSpreadsheet className="h-4 w-4 text-primary" />

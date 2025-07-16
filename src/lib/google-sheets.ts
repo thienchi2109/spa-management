@@ -60,7 +60,7 @@ export const SHEET_CONFIG = {
     invoices: 'Invoices',
     staff: 'Staff',
     medicalRecords: 'MedicalRecords',
-    prescriptions: 'Prescriptions',
+
     services: 'SpaServices'
   }
 };

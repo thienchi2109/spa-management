@@ -156,7 +156,7 @@ export default function MigrationPage() {
     { name: 'invoices', displayName: 'Hóa đơn', icon: '🧾' },
     { name: 'staff', displayName: 'Nhân viên', icon: '👨‍⚕️' },
     { name: 'medicalRecords', displayName: 'Hồ sơ y tế', icon: '📋' },
-    { name: 'prescriptions', displayName: 'Đơn thuốc', icon: '📝' }
+
   ];
 
   return (

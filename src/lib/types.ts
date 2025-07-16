@@ -76,7 +76,7 @@ export interface Invoice {
 export interface PatientDocument {
   id: string;
   name: string;
-  type: 'Ultrasound' | 'X-Ray' | 'Blood Test' | 'Prescription' | 'Tài liệu';
+  type: 'Ultrasound' | 'X-Ray' | 'Blood Test' | 'Tài liệu';
   uploadDate: string;
   url: string;
 }
@@ -95,7 +95,6 @@ export interface Staff {
   licenseExpiryDate?: string;   // Ngày hết hạn
 }
 
-// TODO: Develop more detailed prescription functionality later
 export interface MedicalRecord {
   id: string;
   patientId: string;
@@ -106,54 +105,7 @@ export interface MedicalRecord {
   symptoms: string;          // Tình trạng
   diagnosis: string;         // Đánh giá
   treatment: string;         // Phương pháp chăm sóc
-  prescription?: string;     // Sản phẩm sử dụng (TODO: expand this to detailed prescription system)
+  products?: string;         // Sản phẩm sử dụng
   nextAppointment?: string;  // Ngày hẹn tái khám
   notes?: string;           // Ghi chú thêm
-}
-
-export interface PrescriptionItem {
-  id: string;
-  medicationId: string;
-  medicationName: string;
-  concentration: string;
-  dosageForm: string;
-  quantity: number;
-  unit: string;
-  dosage: string;           // Liều dùng
-  instructions: string;     // Hướng dẫn sử dụng
-  unitPrice: number;
-  totalCost: number;
-  notes?: string;
-}
-
-export interface Prescription {
-  id: string;
-  patientId: string;
-  patientName: string;
-  patientAge?: number;
-  patientGender?: string;
-  patientWeight?: number;
-  patientAddress?: string;
-  doctorId: string;
-  doctorName: string;
-  doctorLicense?: string;
-  medicalRecordId?: string;
-  appointmentId?: string;
-  date: string;
-  diagnosis: string;
-  symptoms?: string;
-  items: PrescriptionItem[];
-  totalCost: number;
-  doctorNotes?: string;
-  nextAppointment?: string;
-  status: 'Draft' | 'Finalized' | 'Dispensed' | 'Cancelled';
-  validUntil?: string;
-  clinicInfo?: {
-    name: string;
-    address: string;
-    phone: string;
-    licenseNumber: string;
-  };
-  createdAt?: string;
-  updatedAt?: string;
 }

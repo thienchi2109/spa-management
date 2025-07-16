@@ -1,6 +1,6 @@
 'use client';
 
-import type { Appointment, Staff, Invoice, MedicalRecord } from '@/lib/types';
+import type { Appointment, Staff, Invoice } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { CalendarSearch, CreditCard, CheckCircle2 } from 'lucide-react';
@@ -58,8 +58,7 @@ export function DailyTimeline({
   onUpdateStatus,
   onUpdateInvoiceStatus,
   invoices,
-  onCreateInvoice,
-  onSaveMedicalRecord
+  onCreateInvoice
 }: {
   appointments: Appointment[];
   staff: Staff[];
@@ -67,7 +66,6 @@ export function DailyTimeline({
   onUpdateInvoiceStatus: (invoiceId: string, newStatus: Invoice['status']) => void;
   invoices: Invoice[];
   onCreateInvoice: (appointment: Appointment) => void;
-  onSaveMedicalRecord: (recordData: Omit<MedicalRecord, 'id'>) => Promise<void>;
 }) {
   const START_HOUR = 7;
   const END_HOUR = 20;
@@ -177,7 +175,6 @@ export function DailyTimeline({
                                         onUpdateStatus={onUpdateStatus}
                                         onUpdateInvoiceStatus={onUpdateInvoiceStatus}
                                         onCreateInvoice={onCreateInvoice}
-                                        onSaveMedicalRecord={onSaveMedicalRecord}
                                     />
                                 </Dialog>
                             )

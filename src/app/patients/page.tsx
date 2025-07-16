@@ -37,8 +37,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CustomerForm } from './components/customer-form';
 import { CustomerDetail } from './components/customer-detail';
-import { getCollectionData, addCustomer, updateCustomer, deleteCustomer } from '@/lib/sheets-utils';
+import { addCustomer, updateCustomer, deleteCustomer } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
+import { useData } from '@/contexts/data-context';
+import { LazyCard } from '@/components/ui/lazy-loader';
 
 const translateGender = (gender: Customer['gender']) => {
     switch(gender) {
@@ -52,40 +54,22 @@ const translateGender = (gender: Customer['gender']) => {
 }
 
 export default function CustomersPage() {
-    const [customers, setCustomers] = useState<Customer[]>([]);
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [loading, setLoading] = useState(true);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const { toast } = useToast();
 
-    useEffect(() => {
-        async function loadData() {
-            try {
-                const [customersData, appointmentsData, invoicesData] = await Promise.all([
-                    getCollectionData<Customer>('customers'),
-                    getCollectionData<Appointment>('appointments'),
-                    getCollectionData<Invoice>('invoices'),
-                ]);
-                setCustomers(customersData);
-                setAppointments(appointmentsData);
-                setInvoices(invoicesData);
-            } catch (error) {
-                console.error("Failed to load data from Google Sheets", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Lỗi tải dữ liệu',
-                    description: 'Không thể tải dữ liệu khách hàng từ Google Sheets.'
-                });
-            } finally {
-                setLoading(false);
-            }
-        }
-        loadData();
-    }, [toast]);
+    // Use cached data from context
+    const {
+        customers,
+        appointments,
+        invoices,
+        isLoadingCustomers: loading,
+        addCustomerOptimistic,
+        updateCustomerOptimistic,
+        deleteCustomerOptimistic
+    } = useData();
 
     // Utility function to normalize Vietnamese text for search
     const normalizeVietnameseText = useCallback((text: string): string => {
@@ -102,14 +86,9 @@ export default function CustomersPage() {
         // Use actual today date instead of static date
         const actualToday = new Date().toISOString().split('T')[0];
 
-        console.log('=== DEBUG getTodayRelevantCustomers ===');
-        console.log('Total appointments loaded:', appointments.length);
-        console.log('actualToday (using this):', actualToday);
 
-        const todayAppointments = appointments.filter(app => {
-            console.log(`Comparing: "${app.date}" === "${actualToday}"`, app.date === actualToday);
-            return app.date === actualToday;
-        });
+
+        const todayAppointments = appointments.filter(app => app.date === actualToday);
 
         const relevantCustomerNames = new Set(todayAppointments.map(app => app.patientName));
         const relevantCustomers = customers.filter(customer => relevantCustomerNames.has(customer.name));
@@ -194,9 +173,11 @@ export default function CustomersPage() {
                 tongChiTieu: 0,
             };
 
-            // Use Google Sheets instead of Firestore
-            await addCustomer(customerToAdd);
-            setCustomers(prev => [...prev, customerToAdd]);
+            // Use optimistic update
+            await addCustomerOptimistic(customerToAdd, async () => {
+                return await addCustomer(customerToAdd);
+            });
+
             setIsCreateDialogOpen(false);
             toast({
                 title: 'Thêm thành công',
@@ -214,8 +195,11 @@ export default function CustomersPage() {
 
     const handleDeleteCustomer = async (customerId: string, customerName: string) => {
         try {
-            await deleteCustomer(customerId);
-            setCustomers(prev => prev.filter(customer => customer.id !== customerId));
+            // Use optimistic update
+            await deleteCustomerOptimistic(customerId, async () => {
+                return await deleteCustomer(customerId);
+            });
+
             toast({
                 title: 'Xóa thành công',
                 description: `Hồ sơ khách hàng ${customerName} đã được xóa.`,
@@ -232,16 +216,13 @@ export default function CustomersPage() {
     
     const handleUpdateCustomer = async (updatedCustomerData: Customer) => {
         try {
-            // Use Google Sheets instead of Firestore
-            await updateCustomer(updatedCustomerData);
+            // Use optimistic update
+            await updateCustomerOptimistic(updatedCustomerData, async () => {
+                return await updateCustomer(updatedCustomerData);
+            });
 
-            setCustomers(prevCustomers => 
-                prevCustomers.map(c =>
-                    c.id === updatedCustomerData.id ? updatedCustomerData : c
-                )
-            );
             setSelectedCustomer(updatedCustomerData);
-             toast({
+            toast({
                 title: "Cập nhật thành công",
                 description: `Thông tin khách hàng ${updatedCustomerData.name} đã được lưu.`,
             });
@@ -350,72 +331,74 @@ export default function CustomersPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCustomers.map((customer) => (
-            <Card key={customer.id} className="flex flex-col">
-              <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint="person portrait"/>
-                  <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <CardTitle className="font-headline">{customer.name}</CardTitle>
-                  <CardDescription>
-                    {calculateAge(customer.birthYear)} tuổi, {translateGender(customer.gender)}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow space-y-4">
-                  <div className="text-sm text-muted-foreground space-y-2">
-                      <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 flex-shrink-0" />
-                          <span>{customer.phone}</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span>{customer.address}</span>
-                      </div>
-                      <div className="flex items-center gap-2 pt-2">
-                          <CreditCard className="h-4 w-4 flex-shrink-0 text-green-600" />
-                          <span className="text-sm font-medium text-green-600">
-                            Tổng chi tiêu: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(customer.tongChiTieu)}
-                          </span>
-                      </div>
+          {filteredCustomers.map((customer, index) => (
+            <LazyCard key={customer.id} delay={index * 50}>
+              <Card className="flex flex-col">
+                <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint="person portrait"/>
+                    <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid gap-1">
+                    <CardTitle className="font-headline">{customer.name}</CardTitle>
+                    <CardDescription>
+                      {calculateAge(customer.birthYear)} tuổi, {translateGender(customer.gender)}
+                    </CardDescription>
                   </div>
-              </CardContent>
-              <CardFooter className="flex justify-between items-center">
-                  <p className="text-xs text-muted-foreground">Lần đến cuối: {formatDate(customer.lastVisit)}</p>
-                  <div className="flex items-center gap-2">
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                              </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>Xác nhận xóa khách hàng</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      Bạn có chắc chắn muốn xóa khách hàng <strong>{customer.name}</strong>?
-                                      Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                  <AlertDialogAction
-                                      onClick={() => handleDeleteCustomer(customer.id, customer.name)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                      Xóa khách hàng
-                                  </AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
-                      <Button variant="outline" size="sm" onClick={() => setSelectedCustomer(customer)}>
-                          Xem chi tiết
-                      </Button>
-                  </div>
-              </CardFooter>
-            </Card>
+                </CardHeader>
+                <CardContent className="flex-grow space-y-4">
+                    <div className="text-sm text-muted-foreground space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 flex-shrink-0" />
+                            <span>{customer.phone}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            <span>{customer.address}</span>
+                        </div>
+                        <div className="flex items-center gap-2 pt-2">
+                            <CreditCard className="h-4 w-4 flex-shrink-0 text-green-600" />
+                            <span className="text-sm font-medium text-green-600">
+                              Tổng chi tiêu: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(customer.tongChiTieu)}
+                            </span>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between items-center">
+                    <p className="text-xs text-muted-foreground">Lần đến cuối: {formatDate(customer.lastVisit)}</p>
+                    <div className="flex items-center gap-2">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Xác nhận xóa khách hàng</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Bạn có chắc chắn muốn xóa khách hàng <strong>{customer.name}</strong>?
+                                        Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => handleDeleteCustomer(customer.id, customer.name)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        Xóa khách hàng
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <Button variant="outline" size="sm" onClick={() => setSelectedCustomer(customer)}>
+                            Xem chi tiết
+                        </Button>
+                    </div>
+                </CardFooter>
+              </Card>
+            </LazyCard>
           ))}
         </div>
       )}

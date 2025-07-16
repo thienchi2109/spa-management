@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,12 +21,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarIcon, UserPlus, Loader2 } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
-import type { Appointment, Staff, Patient } from '@/lib/types';
+import type { Appointment, Staff, Customer } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PatientForm } from '@/app/patients/components/patient-form';
+import { SimplifiedCustomerForm } from './simplified-customer-form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
 
 const baseAppointmentFormSchema = z.object({
   patientName: z.string({ required_error: 'Vui lòng chọn khách hàng.' }).min(1, 'Vui lòng chọn khách hàng.'),
@@ -46,9 +47,9 @@ interface AppointmentFormProps {
     selectedDate?: Date;
     staff: Staff[];
     appointments: Appointment[];
-    patients: Patient[];
+    patients: Customer[];
     onSave: (appointment: Omit<Appointment, 'id' | 'status'>) => Promise<void>;
-    onSavePatient: (patientData: Omit<Patient, 'id' | 'lastVisit' | 'avatarUrl' | 'documents'>) => Promise<Patient>;
+    onSavePatient: (patientData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) => Promise<Customer>;
     onClose: () => void;
 }
 
@@ -57,10 +58,11 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
-  const [schedulerSearch, setSchedulerSearch] = useState('');
   const [isPatientListVisible, setIsPatientListVisible] = useState(false);
-  const [isSchedulerListVisible, setIsSchedulerListVisible] = useState(false);
   const [isPatientSaved, setIsPatientSaved] = useState(false);
+  
+  // Get current user from auth context
+  const { currentUser } = useAuth();
   
   const filteredPatients = useMemo(() => {
     if (!patientSearch) {
@@ -69,20 +71,11 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
     return patients.filter((patient) =>
       patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
       patient.phone?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      patient.email?.toLowerCase().includes(patientSearch.toLowerCase()) ||
       patient.address?.toLowerCase().includes(patientSearch.toLowerCase())
     );
   }, [patientSearch, patients]);
 
-  const filteredSchedulers = useMemo(() => {
-    if (!schedulerSearch) {
-      return [];
-    }
-    return staff.filter((staffMember) =>
-      staffMember.name.toLowerCase().includes(schedulerSearch.toLowerCase()) ||
-      staffMember.role.toLowerCase().includes(schedulerSearch.toLowerCase())
-    );
-  }, [schedulerSearch, staff]);
+  // Remove the scheduler search functionality since it will be auto-filled and non-editable
 
   const appointmentFormSchema = useMemo(() => {
     return baseAppointmentFormSchema.refine(
@@ -110,13 +103,21 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
       date: selectedDate,
       startTime: '',
       endTime: '',
+      schedulerName: currentUser?.name || '', // Auto-fill with current user's name
     },
   });
 
-  async function handleSaveNewPatient(patientData: Omit<Patient, 'id' | 'lastVisit' | 'avatarUrl' | 'documents'>) {
-    const newPatient = await onSavePatient(patientData);
-    form.setValue('patientName', newPatient.name, { shouldValidate: true });
-    setPatientSearch(newPatient.name);
+  // Auto-fill scheduler name when currentUser changes
+  useEffect(() => {
+    if (currentUser?.name) {
+      form.setValue('schedulerName', currentUser.name);
+    }
+  }, [currentUser, form]);
+
+  async function handleSaveNewCustomer(customerData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) {
+    const newCustomer = await onSavePatient(customerData);
+    form.setValue('patientName', newCustomer.name, { shouldValidate: true });
+    setPatientSearch(newCustomer.name);
     setIsPatientSaved(true);
   }
 
@@ -151,7 +152,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                     <div className="relative w-full">
                       <FormControl>
                         <Input
-                          placeholder="Tìm theo tên, SĐT, email, địa chỉ..."
+                          placeholder="Tìm theo tên, SĐT, địa chỉ..."
                           value={patientSearch}
                           onChange={(e) => {
                             setPatientSearch(e.target.value);
@@ -186,7 +187,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                                   >
                                     <div className="font-medium">{p.name}</div>
                                     <div className="text-xs text-muted-foreground">
-                                      {p.phone} • {p.email}
+                                      {p.phone} • {p.address}
                                     </div>
                                   </div>
                                 ))
@@ -255,58 +256,14 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nhân viên giữ lịch</FormLabel>
-                  <div className="relative w-full">
-                    <FormControl>
-                      <Input
-                        placeholder="Tìm theo tên, chức vụ..."
-                        value={schedulerSearch}
-                        onChange={(e) => {
-                          setSchedulerSearch(e.target.value);
-                          if (field.value) {
-                            field.onChange(undefined);
-                          }
-                          if (!isSchedulerListVisible) setIsSchedulerListVisible(true);
-                        }}
-                        onFocus={() => setIsSchedulerListVisible(true)}
-                        onBlur={() => {
-                          setTimeout(() => {
-                            setIsSchedulerListVisible(false);
-                          }, 150);
-                        }}
-                      />
-                    </FormControl>
-                    {isSchedulerListVisible && schedulerSearch && (
-                      <div className="absolute top-full mt-1 w-full z-10">
-                        <Card>
-                          <ScrollArea className="h-auto max-h-48 p-1">
-                            {filteredSchedulers.length > 0 ? (
-                              filteredSchedulers.map((s) => (
-                                <div
-                                  key={s.id}
-                                  className="p-2 text-sm hover:bg-accent rounded-md cursor-pointer"
-                                  onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      field.onChange(s.name);
-                                      setSchedulerSearch(s.name);
-                                      setIsSchedulerListVisible(false);
-                                  }}
-                                >
-                                  <div className="font-medium">{s.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {s.role}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="p-2 text-center text-sm text-muted-foreground">
-                                Không tìm thấy nhân viên.
-                              </p>
-                            )}
-                          </ScrollArea>
-                        </Card>
-                      </div>
-                    )}
-                  </div>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      disabled
+                      className="bg-muted cursor-not-allowed"
+                      placeholder="Tự động điền từ người dùng hiện tại"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -401,8 +358,8 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                 <p className="text-sm text-muted-foreground">Nhập thông tin chi tiết cho khách hàng.</p>
               </div>
               <div className={cn("transition-opacity duration-200", isPatientSaved && "opacity-50 pointer-events-none")}>
-                <PatientForm
-                  onSave={handleSaveNewPatient}
+                <SimplifiedCustomerForm
+                  onSave={handleSaveNewCustomer}
                   onClose={() => setIsPatientFormOpen(false)}
                 />
               </div>

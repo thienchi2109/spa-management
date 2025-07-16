@@ -1,4 +1,4 @@
-import { Patient, Appointment, SpaService, Invoice, PatientDocument, Staff, MedicalRecord, Prescription } from './types';
+import { Patient, Appointment, SpaService, Invoice, PatientDocument, Staff, MedicalRecord } from './types';
 
 // Hardcode dates to prevent hydration errors from `new Date()`
 export const staticToday = '2024-07-27';
@@ -9,7 +9,7 @@ export const documents: PatientDocument[] = [
   { id: 'DOC001', name: 'Ultrasound_Scan_Abdomen.pdf', type: 'Ultrasound', uploadDate: '2023-10-15', url: '#' },
   { id: 'DOC002', name: 'Blood_Test_Results_Jan23.pdf', type: 'Blood Test', uploadDate: '2023-10-14', url: '#' },
   { id: 'DOC003', name: 'Chest_XRay_Report.pdf', type: 'X-Ray', uploadDate: '2023-09-20', url: '#' },
-  { id: 'DOC004', name: 'Prescription_Amoxicillin.pdf', type: 'Prescription', uploadDate: '2023-10-15', url: '#' },
+
 ];
 
 
@@ -248,7 +248,7 @@ export const medicalRecords: MedicalRecord[] = [
     symptoms: 'Da khô, cần dưỡng ẩm, mệt mỏi',
     diagnosis: 'Da thiếu nước, cần chăm sóc đặc biệt',
     treatment: 'Massage thư giãn, dưỡng ẩm sâu, nghỉ ngơi',
-    prescription: 'Paracetamol 500mg x 3 lần/ngày x 5 ngày, Amoxicillin 250mg x 3 lần/ngày x 7 ngày',
+    products: 'Serum dưỡng ẩm, Kem chống nắng SPF 30',
     nextAppointment: '2024-08-05',
     notes: 'Khách hàng cần tái khám sau 1 tuần nếu tình trạng không cải thiện'
   },
@@ -262,115 +262,9 @@ export const medicalRecords: MedicalRecord[] = [
     symptoms: 'Tái khám định kỳ, da tình trạng tốt',
     diagnosis: 'Tình trạng da ổn định',
     treatment: 'Tiếp tục chăm sóc da theo lịch trình',
-    prescription: 'Salbutamol inhaler - sử dụng khi cần, Budesonide inhaler 2 lần/ngày',
+    products: 'Kem dưỡng da chuyên dụng, Sữa rửa mặt nhẹ',
     notes: 'Tình trạng ổn định, khuyến khích duy trì lối sống lành mạnh'
   }
 ];
 
-export const prescriptions: Prescription[] = [
-  {
-    id: 'PR001',
-    patientId: 'PATIENT-30072024-000',
-    patientName: 'Trần Thị Bích',
-    patientAge: 34,
-    patientGender: 'Female',
-    patientWeight: 55,
-    patientAddress: '456 Đường Sồi, Quận 3, TP.HCM',
-    doctorId: 'STAFF001',
-    doctorName: 'Cv. Minh',
-    doctorLicense: 'CCHN00123/HCM',
-    medicalRecordId: 'MR001',
-    appointmentId: 'APP002',
-    date: staticToday,
-    diagnosis: 'Viêm họng cấp tính do virus',
-    symptoms: 'Đau họng, khó nuốt, sốt nhẹ 37.5°C',
-    items: [
-      {
-        id: 'PI001',
-        medicationId: 'MED001',
-        medicationName: 'Paracetamol 500mg',
-        concentration: '500mg',
-        dosageForm: 'Viên nén',
-        quantity: 20,
-        unit: 'Viên',
-        dosage: '1 viên/lần',
-        instructions: '3-4 lần/ngày sau ăn khi sốt trên 38.5°C',
-        unitPrice: 1800,
-        totalCost: 36000,
-        notes: ''
-      },
-      {
-        id: 'PI002',
-        medicationId: 'MED002',
-        medicationName: 'Amoxicillin 250mg',
-        concentration: '250mg',
-        dosageForm: 'Viên nang',
-        quantity: 14,
-        unit: 'Viên',
-        dosage: '1 viên/lần',
-        instructions: '2 lần/ngày (sáng, tối) sau ăn. Uống hết liều.',
-        unitPrice: 3200,
-        totalCost: 44800,
-        notes: ''
-      }
-    ],
-    totalCost: 80800,
-    doctorNotes: 'Uống nhiều nước ấm, nghỉ ngơi, giữ ấm cổ. Hạn chế đồ ăn cay nóng.',
-    nextAppointment: '2024-08-05',
-    status: 'Finalized',
-    validUntil: '2024-08-01',
-    clinicInfo: {
-      name: 'PHÒNG KHÁM ĐA KHOA ABC',
-      address: 'Số 123, Đường XYZ, Phường Cống Vị, Quận Ba Đình, Hà Nội',
-      phone: '(024) 3456 7890',
-      licenseNumber: '01234'
-    },
-    createdAt: staticToday,
-    updatedAt: staticToday
-  },
-  {
-    id: 'PR002',
-    patientId: 'PATIENT-30072024-001',
-    patientName: 'Lê Thị Cẩm',
-    patientAge: 28,
-    patientGender: 'Female',
-    patientWeight: 60,
-    patientAddress: '789 Đường Thông, Quận 5, TP.HCM',
-    doctorId: 'STAFF002',
-    doctorName: 'Cv. Hải',
-    doctorLicense: '',
-    medicalRecordId: 'MR002',
-    appointmentId: 'APP007',
-    date: staticToday,
-    diagnosis: 'Tình trạng da ổn định',
-    symptoms: 'Tái khám định kỳ, da tình trạng tốt',
-    items: [
-      {
-        id: 'PI003',
-        medicationId: 'MED003',
-        medicationName: 'Ibuprofen 200mg',
-        concentration: '200mg',
-        dosageForm: 'Viên nén bao phim',
-        quantity: 10,
-        unit: 'Viên',
-        dosage: '1 viên/lần',
-        instructions: 'Uống khi cần thiết để giảm đau',
-        unitPrice: 2500,
-        totalCost: 25000,
-        notes: 'Sử dụng khi cần'
-      }
-    ],
-    totalCost: 25000,
-    doctorNotes: 'Tiếp tục duy trì lối sống lành mạnh, tránh các chất gây dị ứng.',
-    status: 'Draft',
-    validUntil: '2024-08-01',
-    clinicInfo: {
-      name: 'PHÒNG KHÁM ĐA KHOA ABC',
-      address: 'Số 123, Đường XYZ, Phường Cống Vị, Quận Ba Đình, Hà Nội',
-      phone: '(024) 3456 7890',
-      licenseNumber: '01234'
-    },
-    createdAt: staticToday,
-    updatedAt: staticToday
-  }
-];
+

@@ -129,15 +129,15 @@ export function ExaminationHistory({ patientId, patientName, medicalRecords, inv
                   </p>
                 </div>
 
-                {/* Prescription */}
-                {record.prescription && (
+                {/* Products */}
+                {record.products && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Pill className="h-4 w-4 text-purple-500" />
-                      <h5 className="font-semibold text-sm">Đơn thuốc</h5>
+                      <h5 className="font-semibold text-sm">Sản phẩm sử dụng</h5>
                     </div>
                     <p className="text-sm bg-purple-50 dark:bg-purple-950/20 p-3 rounded-lg border-l-4 border-purple-200 dark:border-purple-800 whitespace-pre-wrap">
-                      {record.prescription}
+                      {record.products}
                     </p>
                   </div>
                 )}

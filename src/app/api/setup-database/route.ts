@@ -21,8 +21,7 @@ export async function POST(request: NextRequest) {
         'Medications',
         'Invoices',
         'Staff',
-        'MedicalRecords',
-        'Prescriptions'
+        'MedicalRecords'
       ]
     });
   } catch (error) {

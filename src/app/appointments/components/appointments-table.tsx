@@ -1,6 +1,6 @@
 'use client';
 
-import type { Appointment, Staff, Invoice, MedicalRecord } from '@/lib/types';
+import type { Appointment, Staff, Invoice } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import {
   Table,
@@ -96,13 +96,12 @@ interface AppointmentsTableProps {
   onUpdateStatus: (appointmentId: string, newStatus: Appointment['status']) => void;
   onUpdateInvoiceStatus: (invoiceId: string, newStatus: Invoice['status']) => void;
   onCreateInvoice: (appointment: Appointment) => void;
-  onSaveMedicalRecord: (recordData: Omit<MedicalRecord, 'id'>) => Promise<void>;
   onEditAppointment?: (appointment: Appointment) => void;
   onDeleteAppointment?: (appointmentId: string) => void;
   showResultsCount?: boolean;
 }
 
-export function AppointmentsTable({ appointments, staff, invoices, onUpdateStatus, onUpdateInvoiceStatus, onCreateInvoice, onSaveMedicalRecord, onEditAppointment, onDeleteAppointment, showResultsCount = false }: AppointmentsTableProps) {
+export function AppointmentsTable({ appointments, staff, invoices, onUpdateStatus, onUpdateInvoiceStatus, onCreateInvoice, onEditAppointment, onDeleteAppointment, showResultsCount = false }: AppointmentsTableProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
 
@@ -241,7 +240,6 @@ export function AppointmentsTable({ appointments, staff, invoices, onUpdateStatu
                             onUpdateStatus={onUpdateStatus}
                             onUpdateInvoiceStatus={onUpdateInvoiceStatus}
                             onCreateInvoice={onCreateInvoice}
-                            onSaveMedicalRecord={onSaveMedicalRecord}
                         />
                     </Dialog>
                 </TableCell>
