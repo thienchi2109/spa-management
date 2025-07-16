@@ -146,8 +146,8 @@ export default function PrescriptionForm({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.patientId) newErrors.patient = 'Vui lòng chọn bệnh nhân';
-    if (!formData.diagnosis?.trim()) newErrors.diagnosis = 'Vui lòng nhập chẩn đoán';
+    if (!formData.patientId) newErrors.patient = 'Vui lòng chọn khách hàng';
+    if (!formData.diagnosis?.trim()) newErrors.diagnosis = 'Vui lòng nhập đánh giá';
     if (!formData.items?.length) newErrors.items = 'Vui lòng thêm ít nhất một loại thuốc';
     
     if (formData.items && formData.items.length > PRESCRIPTION_VALIDATION.MAX_ITEMS) {
@@ -311,18 +311,18 @@ export default function PrescriptionForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Thông tin bệnh nhân
+            Thông tin khách hàng
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="patientName">Tên bệnh nhân *</Label>
+              <Label htmlFor="patientName">Tên khách hàng *</Label>
               <Input
                 id="patientName"
                 value={formData.patientName || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, patientName: e.target.value }))}
-                placeholder="Nhập tên bệnh nhân"
+                placeholder="Nhập tên khách hàng"
                 className={errors.patient ? 'border-red-500' : ''}
               />
               {errors.patient && <p className="text-sm text-red-500 mt-1">{errors.patient}</p>}
@@ -369,7 +369,7 @@ export default function PrescriptionForm({
               id="patientAddress"
               value={formData.patientAddress || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, patientAddress: e.target.value }))}
-              placeholder="Địa chỉ bệnh nhân"
+              placeholder="Địa chỉ khách hàng"
             />
           </div>
         </CardContent>
@@ -393,12 +393,12 @@ export default function PrescriptionForm({
             {errors.diagnosis && <p className="text-sm text-red-500 mt-1">{errors.diagnosis}</p>}
           </div>
           <div>
-            <Label htmlFor="symptoms">Triệu chứng</Label>
+            <Label htmlFor="symptoms">Tình trạng</Label>
             <Textarea
               id="symptoms"
               value={formData.symptoms || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, symptoms: e.target.value }))}
-              placeholder="Mô tả triệu chứng"
+              placeholder="Mô tả tình trạng"
               rows={3}
             />
           </div>
@@ -725,7 +725,7 @@ export default function PrescriptionForm({
               id="doctorNotes"
               value={formData.doctorNotes || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, doctorNotes: e.target.value }))}
-              placeholder="Lời dặn, chú ý đặc biệt cho bệnh nhân..."
+              placeholder="Lời dặn, chú ý đặc biệt cho khách hàng..."
               rows={4}
               maxLength={PRESCRIPTION_VALIDATION.MAX_DOCTOR_NOTES_LENGTH}
             />

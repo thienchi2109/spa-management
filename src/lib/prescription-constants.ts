@@ -14,7 +14,7 @@ export const PRESCRIPTION_STATUSES = {
 export const PRESCRIPTION_STATUS_LABELS = {
   [PRESCRIPTION_STATUSES.DRAFT]: 'Bản nháp',
   [PRESCRIPTION_STATUSES.FINALIZED]: 'Đã hoàn thành',
-  [PRESCRIPTION_STATUSES.DISPENSED]: 'Đã cấp thuốc',
+  [PRESCRIPTION_STATUSES.DISPENSED]: 'Đã cung cấp',
   [PRESCRIPTION_STATUSES.CANCELLED]: 'Đã hủy'
 } as const;
 
@@ -31,7 +31,7 @@ export const DEFAULT_PRESCRIPTION_VALIDITY_DAYS = 5;
 
 // Clinic Information (can be moved to settings later)
 export const DEFAULT_CLINIC_INFO = {
-  name: 'PHÒNG KHÁM ĐA KHOA ABC',
+  name: 'SPA CHĂM SÓC SẮC ĐẸP ABC',
   address: 'Số 123, Đường XYZ, Phường Cống Vị, Quận Ba Đình, Hà Nội',
   phone: '(024) 3456 7890',
   licenseNumber: '01234'

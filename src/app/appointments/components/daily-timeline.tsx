@@ -70,7 +70,7 @@ export function DailyTimeline({
   onSaveMedicalRecord: (recordData: Omit<MedicalRecord, 'id'>) => Promise<void>;
 }) {
   const START_HOUR = 7;
-  const END_HOUR = 18;
+  const END_HOUR = 20;
   const timeSlots = Array.from({ length: (END_HOUR - START_HOUR) * 2 }, (_, i) => {
     const totalMinutes = START_HOUR * 60 + i * 30;
     const hours = Math.floor(totalMinutes / 60);

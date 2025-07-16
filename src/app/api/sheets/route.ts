@@ -1,4 +1,3 @@
-// src/app/api/sheets/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { 
   getSheetData, 
@@ -6,172 +5,191 @@ import {
   appendSheetData, 
   updateSheetRow, 
   deleteSheetRow,
-  ensureSheetsExist,
-  SHEET_CONFIG 
+  SHEET_CONFIG,
+  ensureSheetsExist
 } from '@/lib/google-sheets';
+import type { 
+  Patient, 
+  Customer,
+  Appointment, 
+  Medication, 
+  Invoice, 
+  Staff, 
+  MedicalRecord, 
+  Prescription,
+  SpaService
+} from '@/lib/types';
 
-// Define headers for each data type
-const HEADERS_MAP: Record<string, string[]> = {
-  patients: ['id', 'name', 'birthYear', 'gender', 'address', 'phone', 'citizenId', 'weight', 'lastVisit', 'avatarUrl', 'medicalHistory', 'documents'],
-  appointments: ['id', 'patientName', 'doctorName', 'date', 'startTime', 'endTime', 'status', 'notes'],
-  medications: ['id', 'name', 'activeIngredient', 'concentration', 'dosageForm', 'unit', 'manufacturer', 'manufacturerCountry', 'registrationNumber', 'supplier', 'importPrice', 'sellPrice', 'storageLocation', 'minStockThreshold', 'batchNo', 'expiryDate', 'stock', 'status'],
-  invoices: ['id', 'patientName', 'date', 'items', 'amount', 'status'],
-  staff: ['id', 'name', 'role', 'avatarUrl', 'phone', 'email', 'password', 'licenseNumber', 'licenseIssueDate', 'licenseIssuePlace', 'licenseExpiryDate'],
-  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'prescription', 'nextAppointment', 'notes'],
-  prescriptions: ['id', 'patientId', 'patientName', 'patientAge', 'patientGender', 'patientWeight', 'patientAddress', 'doctorId', 'doctorName', 'doctorLicense', 'medicalRecordId', 'appointmentId', 'date', 'diagnosis', 'symptoms', 'items', 'totalCost', 'doctorNotes', 'nextAppointment', 'status', 'validUntil', 'clinicInfo', 'createdAt', 'updatedAt']
+// Define headers for each collection
+const COLLECTION_HEADERS = {
+  patients: ['id', 'name', 'birthYear', 'gender', 'address', 'phone', 'citizenId', 'weight', 'lastVisit', 'avatarUrl', 'medicalHistory', 'documents'] as (keyof Patient)[],
+  customers: ['id', 'name', 'birthYear', 'gender', 'address', 'phone', 'lastVisit', 'avatarUrl', 'tongChiTieu'] as (keyof Customer)[],
+  appointments: ['id', 'patientName', 'doctorName', 'date', 'startTime', 'endTime', 'status', 'notes'] as (keyof Appointment)[],
+  medications: ['id', 'name', 'activeIngredient', 'concentration', 'dosageForm', 'unit', 'manufacturer', 'manufacturerCountry', 'registrationNumber', 'supplier', 'importPrice', 'sellPrice', 'storageLocation', 'minStockThreshold', 'batchNo', 'expiryDate', 'stock', 'status'] as (keyof Medication)[],
+  invoices: ['id', 'patientName', 'date', 'items', 'amount', 'status'] as (keyof Invoice)[],
+  staff: ['id', 'name', 'role', 'avatarUrl', 'phone', 'email', 'password', 'licenseNumber', 'licenseIssueDate', 'licenseIssuePlace', 'licenseExpiryDate'] as (keyof Staff)[],
+  medicalRecords: ['id', 'patientId', 'patientName', 'appointmentId', 'date', 'doctorName', 'symptoms', 'diagnosis', 'treatment', 'prescription', 'nextAppointment', 'notes'] as (keyof MedicalRecord)[],
+  prescriptions: ['id', 'patientId', 'patientName', 'patientAge', 'patientGender', 'patientWeight', 'patientAddress', 'doctorId', 'doctorName', 'doctorLicense', 'medicalRecordId', 'appointmentId', 'date', 'diagnosis', 'symptoms', 'items', 'totalCost', 'doctorNotes', 'nextAppointment', 'status', 'validUntil', 'clinicInfo', 'createdAt', 'updatedAt'] as (keyof Prescription)[],
+  services: ['id', 'name', 'category', 'description', 'duration', 'price', 'discountPrice', 'requiredStaff', 'equipment', 'roomType', 'preparationTime', 'cleanupTime', 'maxCapacity', 'ageRestriction', 'contraindications', 'benefits', 'aftercareInstructions', 'isActive'] as (keyof SpaService)[]
 };
 
-function getSheetName(collectionName: string): string {
+function getSheetName(collection: string): string {
   const sheetMap: Record<string, string> = {
     'patients': SHEET_CONFIG.SHEETS.patients,
+    'customers': SHEET_CONFIG.SHEETS.customers,
     'appointments': SHEET_CONFIG.SHEETS.appointments,
     'medications': SHEET_CONFIG.SHEETS.medications,
     'invoices': SHEET_CONFIG.SHEETS.invoices,
     'staff': SHEET_CONFIG.SHEETS.staff,
     'medicalRecords': SHEET_CONFIG.SHEETS.medicalRecords,
     'prescriptions': SHEET_CONFIG.SHEETS.prescriptions,
+    'services': SHEET_CONFIG.SHEETS.services,
   };
   
-  return sheetMap[collectionName] || collectionName;
+  return sheetMap[collection] || collection;
 }
 
-// GET - Fetch data from a sheet
+function getHeaders(collection: string): any[] {
+  return (COLLECTION_HEADERS as any)[collection] || [];
+}
+
+// Helper function to find row index by ID
+async function findRowIndexById<T extends { id: string }>(
+  sheetName: string,
+  id: string,
+  headers: (keyof T)[]
+): Promise<number> {
+  const data = await getSheetData<T>(sheetName, headers);
+  const index = data.findIndex(item => item.id === id);
+  return index >= 0 ? index + 1 : -1; // +1 because sheets are 1-indexed (plus header row)
+}
+
+// GET - Retrieve data from a collection
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const collection = searchParams.get('collection');
-    
+
     if (!collection) {
       return NextResponse.json({ error: 'Collection parameter is required' }, { status: 400 });
     }
 
-    const sheetName = getSheetName(collection);
-    const headers = HEADERS_MAP[collection];
-    
-    if (!headers) {
-      return NextResponse.json({ error: 'Invalid collection name' }, { status: 400 });
-    }
-
+    // Ensure sheets exist
     await ensureSheetsExist();
+
+    const sheetName = getSheetName(collection);
+    const headers = getHeaders(collection);
+    
     const data = await getSheetData(sheetName, headers);
     
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error fetching sheet data:', error);
+    console.error('GET /api/sheets error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch data', details: error instanceof Error ? error.message : String(error) },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
 
-// POST - Add new data to a sheet
+// POST - Add or write data to a collection
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { collection, data, operation = 'append' } = body;
-    
+    const { collection, data, operation } = body;
+
     if (!collection || !data) {
       return NextResponse.json({ error: 'Collection and data are required' }, { status: 400 });
     }
 
-    const sheetName = getSheetName(collection);
-    const headers = HEADERS_MAP[collection];
-    
-    if (!headers) {
-      return NextResponse.json({ error: 'Invalid collection name' }, { status: 400 });
-    }
-
+    // Ensure sheets exist
     await ensureSheetsExist();
 
+    const sheetName = getSheetName(collection);
+    const headers = getHeaders(collection);
+
     if (operation === 'write') {
-      // Overwrite entire sheet
+      // Write/overwrite entire sheet
       await writeSheetData(sheetName, Array.isArray(data) ? data : [data], headers);
     } else {
-      // Append to sheet
+      // Append data (default)
       await appendSheetData(sheetName, Array.isArray(data) ? data : [data], headers);
     }
-    
-    return NextResponse.json({ success: true, message: 'Data added successfully' });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error adding sheet data:', error);
+    console.error('POST /api/sheets error:', error);
     return NextResponse.json(
-      { error: 'Failed to add data', details: error instanceof Error ? error.message : String(error) },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
 
-// PUT - Update existing data in a sheet
+// PUT - Update a specific record
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { collection, data, id } = body;
-    
+
     if (!collection || !data || !id) {
       return NextResponse.json({ error: 'Collection, data, and id are required' }, { status: 400 });
     }
 
-    const sheetName = getSheetName(collection);
-    const headers = HEADERS_MAP[collection];
-    
-    if (!headers) {
-      return NextResponse.json({ error: 'Invalid collection name' }, { status: 400 });
-    }
+    // Ensure sheets exist
+    await ensureSheetsExist();
 
-    // First, get all data to find the row index
-    const existingData = await getSheetData(sheetName, headers);
-    const rowIndex = existingData.findIndex((item: any) => item.id === id);
+    const sheetName = getSheetName(collection);
+    const headers = getHeaders(collection);
+    
+    const rowIndex = await findRowIndexById(sheetName, id, headers);
     
     if (rowIndex === -1) {
       return NextResponse.json({ error: 'Record not found' }, { status: 404 });
     }
-
-    await updateSheetRow(sheetName, rowIndex + 1, data, headers); // +1 for header row
     
-    return NextResponse.json({ success: true, message: 'Data updated successfully' });
+    await updateSheetRow(sheetName, rowIndex, data, headers);
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating sheet data:', error);
+    console.error('PUT /api/sheets error:', error);
     return NextResponse.json(
-      { error: 'Failed to update data', details: error instanceof Error ? error.message : String(error) },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
 
-// DELETE - Remove data from a sheet
+// DELETE - Delete a specific record
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const collection = searchParams.get('collection');
     const id = searchParams.get('id');
-    
+
     if (!collection || !id) {
       return NextResponse.json({ error: 'Collection and id parameters are required' }, { status: 400 });
     }
 
-    const sheetName = getSheetName(collection);
-    const headers = HEADERS_MAP[collection];
-    
-    if (!headers) {
-      return NextResponse.json({ error: 'Invalid collection name' }, { status: 400 });
-    }
+    // Ensure sheets exist
+    await ensureSheetsExist();
 
-    // First, get all data to find the row index
-    const existingData = await getSheetData(sheetName, headers);
-    const rowIndex = existingData.findIndex((item: any) => item.id === id);
+    const sheetName = getSheetName(collection);
+    const headers = getHeaders(collection);
+    
+    const rowIndex = await findRowIndexById(sheetName, id, headers);
     
     if (rowIndex === -1) {
       return NextResponse.json({ error: 'Record not found' }, { status: 404 });
     }
-
-    await deleteSheetRow(sheetName, rowIndex + 1); // +1 for header row
     
-    return NextResponse.json({ success: true, message: 'Data deleted successfully' });
+    await deleteSheetRow(sheetName, rowIndex);
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting sheet data:', error);
+    console.error('DELETE /api/sheets error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete data', details: error instanceof Error ? error.message : String(error) },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

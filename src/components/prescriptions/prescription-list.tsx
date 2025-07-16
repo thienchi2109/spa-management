@@ -98,7 +98,7 @@ export default function PrescriptionList({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Tìm theo tên bệnh nhân, mã đơn, chẩn đoán..."
+                  placeholder="Tìm theo tên khách hàng, mã đơn, đánh giá..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -123,10 +123,10 @@ export default function PrescriptionList({
             <div>
               <Select value={doctorFilter} onValueChange={setDoctorFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Lọc theo bác sĩ" />
+                  <SelectValue placeholder="Lọc theo chuyên viên" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả bác sĩ</SelectItem>
+                  <SelectItem value="all">Tất cả chuyên viên</SelectItem>
                   {uniqueDoctors.map(doctor => (
                     <SelectItem key={doctor} value={doctor}>
                       {doctor}
@@ -179,7 +179,7 @@ export default function PrescriptionList({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium">Bệnh nhân:</span>
+                        <span className="font-medium">Khách hàng:</span>
                         <span>{prescription.patientName}</span>
                         {prescription.patientAge && (
                           <span className="text-gray-500">({prescription.patientAge} tuổi)</span>
@@ -188,7 +188,7 @@ export default function PrescriptionList({
                       
                       <div className="flex items-center gap-2">
                         <Stethoscope className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium">Bác sĩ:</span>
+                        <span className="font-medium">Chuyên viên:</span>
                         <span>{prescription.doctorName}</span>
                       </div>
                       
@@ -209,7 +209,7 @@ export default function PrescriptionList({
                     
                     <div className="mt-3">
                       <p className="text-sm">
-                        <span className="font-medium">Chẩn đoán:</span> {prescription.diagnosis}
+                        <span className="font-medium">Đánh giá:</span> {prescription.diagnosis}
                       </p>
                     </div>
                     

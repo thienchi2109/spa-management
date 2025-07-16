@@ -10,7 +10,6 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { staff as mockStaff, appointments as mockAppointments, medicalRecords as mockMedicalRecords } from '@/lib/mock-data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Phone, Mail, UserPlus, Loader2, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -24,9 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { StaffForm } from './components/staff-form';
 import { StaffDetail } from './components/staff-detail';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { seedAndFetchCollection } from '@/lib/firestore-utils';
+import { getCollectionData, addDocument } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
 import type { Staff, Appointment, MedicalRecord } from '@/lib/types';
 import { useAuth, useIsAdmin } from '@/contexts/auth-context';
@@ -46,9 +43,9 @@ export default function StaffPage() {
         const loadData = async () => {
             try {
                 const [staffData, appointmentsData, medicalRecordsData] = await Promise.all([
-                    seedAndFetchCollection<Staff>('staff', mockStaff),
-                    seedAndFetchCollection<Appointment>('appointments', mockAppointments),
-                    seedAndFetchCollection<MedicalRecord>('medicalRecords', mockMedicalRecords),
+                    getCollectionData<Staff>('staff'),
+                    getCollectionData<Appointment>('appointments'),
+                    getCollectionData<MedicalRecord>('medicalRecords'),
                 ]);
                 setStaff(staffData);
                 setAppointments(appointmentsData);
@@ -58,7 +55,7 @@ export default function StaffPage() {
                 toast({
                     variant: 'destructive',
                     title: 'Lỗi tải dữ liệu',
-                    description: 'Không thể tải dữ liệu hệ thống.',
+                    description: 'Không thể tải dữ liệu từ Google Sheets.',
                 });
             } finally {
                 setIsLoading(false);
@@ -86,8 +83,8 @@ export default function StaffPage() {
                 avatarUrl: 'https://placehold.co/100x100.png',
             };
 
-            const docRef = await addDoc(collection(db, 'staff'), staffToAdd);
-            const newStaff = { ...staffToAdd, id: docRef.id };
+            // Use Google Sheets instead of Firestore
+            const newStaff = await addDocument<Staff>('staff', staffToAdd);
             setStaff(prev => [...prev, newStaff]);
             setIsCreateDialogOpen(false);
 
@@ -125,7 +122,7 @@ export default function StaffPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-headline font-bold">Nhân viên y tế</h1>
+                    <h1 className="text-2xl font-headline font-bold">Kỹ thuật viên</h1>
                     {currentUser && (
                         <p className="text-sm text-muted-foreground mt-1">
                             Đăng nhập với tư cách: <span className="font-medium">{currentUser.name}</span>
@@ -143,9 +140,9 @@ export default function StaffPage() {
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-2xl">
                         <DialogHeader>
-                            <DialogTitle>Thêm nhân viên y tế mới</DialogTitle>
+                            <DialogTitle>Thêm kỹ thuật viên mới</DialogTitle>
                             <DialogDescription>
-                                Nhập thông tin chi tiết cho nhân viên mới. Tài khoản đăng nhập sẽ được tạo tự động.
+                                Nhập thông tin chi tiết cho kỹ thuật viên mới. Tài khoản đăng nhập sẽ được tạo tự động.
                             </DialogDescription>
                         </DialogHeader>
                         <StaffForm
@@ -173,7 +170,7 @@ export default function StaffPage() {
                                 <CardTitle className="font-headline">{staffMember.name}</CardTitle>
                                 <div>
                                     <Badge variant={
-                                        staffMember.role === 'Bác sĩ' ? 'default' :
+                                        staffMember.role === 'Chuyên viên' ? 'default' :
                                         staffMember.role === 'admin' ? 'destructive' :
                                         'secondary'
                                     }>
@@ -183,10 +180,10 @@ export default function StaffPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="flex-grow space-y-3 pt-2">
-                             {['Bác sĩ', 'Điều dưỡng'].includes(staffMember.role) && staffMember.licenseNumber && (
+                             {['Chuyên viên', 'Kỹ thuật viên'].includes(staffMember.role) && staffMember.licenseNumber && (
                                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                                     <FileText className="h-4 w-4 flex-shrink-0" />
-                                    <span>GPHN: {staffMember.licenseNumber}</span>
+                                    <span>Chứng chỉ: {staffMember.licenseNumber}</span>
                                 </div>
                             )}
                             <div className="flex items-center gap-3 text-sm text-muted-foreground">

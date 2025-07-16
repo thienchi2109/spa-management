@@ -65,6 +65,46 @@ export function generatePatientId(existingPatients: { id: string }[], creationDa
     return `PATIENT-${dateStr}-${sequenceStr}`;
 }
 
+/**
+ * Generates a customer ID following the pattern: CUSTOMER-DDMMYYYY-XXX
+ * @param existingCustomers - Array of existing customers to check for ID collisions
+ * @param creationDate - Optional date for ID generation (defaults to today)
+ * @returns Generated customer ID
+ */
+export function generateCustomerId(existingCustomers: { id: string }[], creationDate?: Date): string {
+    const date = creationDate || new Date();
+
+    // Format date as DDMMYYYY
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString();
+    const dateStr = `${day}${month}${year}`;
+
+    // Find existing customer IDs for the same date
+    const datePrefix = `CUSTOMER-${dateStr}-`;
+    const existingIdsForDate = existingCustomers
+        .filter(customer => customer.id.startsWith(datePrefix))
+        .map(customer => customer.id)
+        .sort();
+
+    // Find the next available sequence number
+    let sequenceNumber = 0;
+    for (const existingId of existingIdsForDate) {
+        const sequencePart = existingId.split('-')[2];
+        const currentSequence = parseInt(sequencePart, 10);
+        if (currentSequence === sequenceNumber) {
+            sequenceNumber++;
+        } else {
+            break;
+        }
+    }
+
+    // Format sequence number as XXX (3 digits with leading zeros)
+    const sequenceStr = sequenceNumber.toString().padStart(3, '0');
+
+    return `CUSTOMER-${dateStr}-${sequenceStr}`;
+}
+
 // Prescription utilities
 export function generatePrescriptionId(existingPrescriptions: Prescription[] = [], facilityCode: string = '01234', prescriptionType: 'N' | 'H' | 'C' = 'C'): string {
   // Tạo mã đơn thuốc theo quy định: xxxxxyyyyyyy-z
@@ -129,7 +169,7 @@ export function formatPrescriptionStatus(status: string): string {
   const statusMap: Record<string, string> = {
     'Draft': 'Bản nháp',
     'Finalized': 'Đã hoàn thành',
-    'Dispensed': 'Đã cấp thuốc',
+    'Dispensed': 'Đã cung cấp',
     'Cancelled': 'Đã hủy'
   };
   return statusMap[status] || status;
@@ -320,7 +360,7 @@ export function generatePrescriptionHTML(prescription: Prescription): string {
         
         <header class="flex justify-between items-start pb-4 border-b-2 border-gray-200">
             <div class="text-xs">
-                <h2 class="font-bold text-sm uppercase text-blue-700">${prescription.clinicInfo?.name || 'PHÒNG KHÁM ĐA KHOA ABC'}</h2>
+                <h2 class="font-bold text-sm uppercase text-blue-700">${prescription.clinicInfo?.name || 'SPA CHĂM SÓC SẮC ĐẸP ABC'}</h2>
                 <p class="mt-1"><strong>Địa chỉ:</strong> ${prescription.clinicInfo?.address || 'Số 123, Đường XYZ, Phường Cống Vị, Quận Ba Đình, Hà Nội'}</p>
                 <p><strong>Điện thoại:</strong> ${prescription.clinicInfo?.phone || '(024) 3456 7890'}</p>
                 <p><strong>Mã CSKCB:</strong> ${prescription.clinicInfo?.licenseNumber || '01234'}</p>
@@ -351,7 +391,7 @@ export function generatePrescriptionHTML(prescription: Prescription): string {
             <div class="col-span-2"><strong>Địa chỉ:</strong> ${prescription.patientAddress || 'N/A'}</div>
             <div class="col-span-2 bg-gray-100 p-2 rounded-md mt-2">
                 <strong style="color: #dc2626; font-size: 11px;">
-                    Chẩn đoán: ${prescription.diagnosis || 'Chưa có chẩn đoán'}
+                    Đánh giá: ${prescription.diagnosis || 'Chưa có đánh giá'}
                 </strong>
             </div>
         </section>
@@ -374,10 +414,10 @@ export function generatePrescriptionHTML(prescription: Prescription): string {
             </table>
         </section>
 
-        <!-- LỜI DẶN CỦA BÁC SĨ -->
+        <!-- LỜI DẶN CỦA CHUYÊN VIÊN -->
         ${prescription.doctorNotes ? `
         <section class="mt-3" style="font-size: 10px;">
-            <p><strong>Lời dặn của bác sĩ:</strong></p>
+            <p><strong>Lời dặn của chuyên viên:</strong></p>
             <ul class="list-disc list-inside pl-3 mt-1">
                 ${formatDoctorNotes(prescription.doctorNotes)}
             </ul>
@@ -394,10 +434,10 @@ export function generatePrescriptionHTML(prescription: Prescription): string {
                     <div style="height: 40px;"></div> <!-- Khoảng trống để ký tên -->
                 </div>
 
-                <!-- Thông tin bác sĩ kê đơn -->
+                <!-- Thông tin chuyên viên kê đơn -->
                 <div class="text-center w-1/2" style="font-size: 10px;">
                     <p style="font-style: italic;">${formattedDate}</p>
-                    <p class="font-semibold mt-1">Bác sĩ kê đơn</p>
+                    <p class="font-semibold mt-1">Chuyên viên kê đơn</p>
                     <div style="height: 30px; display: flex; align-items: center; justify-content: center;">
                         <!-- Đây là nơi hiển thị thông tin chữ ký số đã được xác thực -->
                         <span style="font-style: italic; color: #16a34a;">-- Đã ký số --</span>
@@ -413,7 +453,7 @@ export function generatePrescriptionHTML(prescription: Prescription): string {
             </div>
             ` : `
             <div class="mt-2 text-center" style="font-size: 8px; color: #6b7280;">
-                <p><strong>Hẹn tái khám:</strong> Theo chỉ định của bác sĩ hoặc khi có dấu hiệu bất thường.</p>
+                <p><strong>Hẹn tái khám:</strong> Theo chỉ định của chuyên viên hoặc khi cần chăm sóc thêm.</p>
                 <p class="mt-1">Vui lòng mang theo đơn này khi tái khám.</p>
             </div>
             `}

@@ -22,9 +22,9 @@ import {
 const navItems = [
   { href: '/', label: 'Bảng điều khiển', icon: LayoutDashboard },
   { href: '/appointments', label: 'Lịch hẹn', icon: Calendar },
-  { href: '/patients', label: 'Bệnh nhân', icon: Users },
-  { href: '/staff', label: 'Nhân viên y tế', icon: Stethoscope },
-  { href: '/inventory', label: 'Kho thuốc', icon: Pill },
+  { href: '/patients', label: 'Khách hàng', icon: Users },
+  { href: '/staff', label: 'Kỹ thuật viên', icon: Stethoscope },
+  { href: '/inventory', label: 'Dịch vụ', icon: Pill },
   { href: '/prescriptions', label: 'Đơn thuốc', icon: Clipboard },
   { href: '/invoices', label: 'Hóa đơn', icon: FileText },
   { href: '/ai-assistant', label: 'Trợ lý AI', icon: Bot },

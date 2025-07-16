@@ -29,8 +29,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 
 const baseAppointmentFormSchema = z.object({
-  patientName: z.string({ required_error: 'Vui lòng chọn bệnh nhân.' }).min(1, 'Vui lòng chọn bệnh nhân.'),
-  doctorName: z.string({ required_error: 'Vui lòng chọn bác sĩ.' }),
+  patientName: z.string({ required_error: 'Vui lòng chọn khách hàng.' }).min(1, 'Vui lòng chọn khách hàng.'),
+  doctorName: z.string({ required_error: 'Vui lòng chọn kỹ thuật viên.' }),
+  schedulerName: z.string({ required_error: 'Vui lòng chọn nhân viên giữ lịch.' }),
   date: z.date({ required_error: 'Vui lòng chọn ngày.' }),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Thời gian không hợp lệ (HH:mm).' }),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Thời gian không hợp lệ (HH:mm).' }),
@@ -56,7 +57,9 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
+  const [schedulerSearch, setSchedulerSearch] = useState('');
   const [isPatientListVisible, setIsPatientListVisible] = useState(false);
+  const [isSchedulerListVisible, setIsSchedulerListVisible] = useState(false);
   const [isPatientSaved, setIsPatientSaved] = useState(false);
   
   const filteredPatients = useMemo(() => {
@@ -64,9 +67,22 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
       return [];
     }
     return patients.filter((patient) =>
-      patient.name.toLowerCase().includes(patientSearch.toLowerCase())
+      patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.phone?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.address?.toLowerCase().includes(patientSearch.toLowerCase())
     );
   }, [patientSearch, patients]);
+
+  const filteredSchedulers = useMemo(() => {
+    if (!schedulerSearch) {
+      return [];
+    }
+    return staff.filter((staffMember) =>
+      staffMember.name.toLowerCase().includes(schedulerSearch.toLowerCase()) ||
+      staffMember.role.toLowerCase().includes(schedulerSearch.toLowerCase())
+    );
+  }, [schedulerSearch, staff]);
 
   const appointmentFormSchema = useMemo(() => {
     return baseAppointmentFormSchema.refine(
@@ -82,7 +98,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
         return !hasConflict;
       },
       {
-        message: "Bác sĩ đã có lịch hẹn khác trong khung giờ này.",
+        message: "Kỹ thuật viên đã có lịch hẹn khác trong khung giờ này.",
         path: ["startTime"],
       }
     );
@@ -109,6 +125,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
     const newAppointment = {
         patientName: data.patientName,
         doctorName: data.doctorName,
+        schedulerName: data.schedulerName,
         date: format(data.date, 'yyyy-MM-dd'),
         startTime: data.startTime,
         endTime: data.endTime,
@@ -129,12 +146,12 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
               name="patientName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tên bệnh nhân</FormLabel>
+                  <FormLabel>Tên Khách hàng</FormLabel>
                   <div className="flex gap-2">
                     <div className="relative w-full">
                       <FormControl>
                         <Input
-                          placeholder="Nhập để tìm kiếm bệnh nhân..."
+                          placeholder="Tìm theo tên, SĐT, email, địa chỉ..."
                           value={patientSearch}
                           onChange={(e) => {
                             setPatientSearch(e.target.value);
@@ -167,12 +184,15 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                                         setIsPatientListVisible(false);
                                     }}
                                   >
-                                    {p.name}
+                                    <div className="font-medium">{p.name}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {p.phone} • {p.email}
+                                    </div>
                                   </div>
                                 ))
                               ) : (
                                 <p className="p-2 text-center text-sm text-muted-foreground">
-                                  Không tìm thấy bệnh nhân.
+                                  Không tìm thấy khách hàng.
                                 </p>
                               )}
                             </ScrollArea>
@@ -193,11 +213,11 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                           }}
                         >
                           <UserPlus className="h-4 w-4" />
-                          <span className="sr-only">Thêm bệnh nhân mới</span>
+                          <span className="sr-only">Thêm khách hàng mới</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{isPatientFormOpen ? 'Đóng form thêm bệnh nhân' : 'Thêm bệnh nhân mới'}</p>
+                        <p>{isPatientFormOpen ? 'Đóng form thêm khách hàng' : 'Thêm khách hàng mới'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -210,11 +230,11 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                 name="doctorName"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Bác sĩ/Điều dưỡng</FormLabel>
+                    <FormLabel>Kỹ thuật viên</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
-                            <SelectValue placeholder="Chọn một nhân viên y tế" />
+                            <SelectValue placeholder="Chọn kỹ thuật viên" />
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -231,10 +251,72 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
             />
             <FormField
               control={form.control}
+              name="schedulerName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nhân viên giữ lịch</FormLabel>
+                  <div className="relative w-full">
+                    <FormControl>
+                      <Input
+                        placeholder="Tìm theo tên, chức vụ..."
+                        value={schedulerSearch}
+                        onChange={(e) => {
+                          setSchedulerSearch(e.target.value);
+                          if (field.value) {
+                            field.onChange(undefined);
+                          }
+                          if (!isSchedulerListVisible) setIsSchedulerListVisible(true);
+                        }}
+                        onFocus={() => setIsSchedulerListVisible(true)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setIsSchedulerListVisible(false);
+                          }, 150);
+                        }}
+                      />
+                    </FormControl>
+                    {isSchedulerListVisible && schedulerSearch && (
+                      <div className="absolute top-full mt-1 w-full z-10">
+                        <Card>
+                          <ScrollArea className="h-auto max-h-48 p-1">
+                            {filteredSchedulers.length > 0 ? (
+                              filteredSchedulers.map((s) => (
+                                <div
+                                  key={s.id}
+                                  className="p-2 text-sm hover:bg-accent rounded-md cursor-pointer"
+                                  onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      field.onChange(s.name);
+                                      setSchedulerSearch(s.name);
+                                      setIsSchedulerListVisible(false);
+                                  }}
+                                >
+                                  <div className="font-medium">{s.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {s.role}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="p-2 text-center text-sm text-muted-foreground">
+                                Không tìm thấy nhân viên.
+                              </p>
+                            )}
+                          </ScrollArea>
+                        </Card>
+                      </div>
+                    )}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Ngày khám</FormLabel>
+                  <FormLabel>Ngày</FormLabel>
                   <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -315,8 +397,8 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
           <Card className="p-6">
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold">Thêm hồ sơ bệnh nhân mới</h3>
-                <p className="text-sm text-muted-foreground">Nhập thông tin chi tiết cho bệnh nhân.</p>
+                <h3 className="text-lg font-semibold">Thêm hồ sơ khách hàng mới</h3>
+                <p className="text-sm text-muted-foreground">Nhập thông tin chi tiết cho khách hàng.</p>
               </div>
               <div className={cn("transition-opacity duration-200", isPatientSaved && "opacity-50 pointer-events-none")}>
                 <PatientForm
@@ -327,7 +409,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
               {isPatientSaved && (
                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-sm text-green-800 font-medium">
-                    ✓ Bệnh nhân đã được thêm thành công!
+                    ✓ Khách hàng đã được thêm thành công!
                   </p>
                   <p className="text-xs text-green-600 mt-1">
                     Thông tin đã được điền vào form lịch hẹn.

@@ -88,7 +88,7 @@ export default function PrescriptionDetailDialog({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Thông tin bệnh nhân
+                  Thông tin khách hàng
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -152,7 +152,7 @@ export default function PrescriptionDetailDialog({
                   </div>
                   {prescription.symptoms && (
                     <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Triệu chứng</p>
+                      <p className="text-sm text-gray-600">Tình trạng</p>
                       <p className="font-medium">{prescription.symptoms}</p>
                     </div>
                   )}

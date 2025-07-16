@@ -2,14 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Staff } from '@/lib/types';
-import { User, Lock, CheckCircle } from 'lucide-react';
+import { User, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -20,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
   const { toast } = useToast();
-  const { refreshAuth } = useAuth();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,41 +25,20 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const staffCollection = collection(db, 'staff');
-      const q = query(staffCollection, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
+      console.log('Attempting login with:', { email, password });
+      
+      // Use the auth context login function (which uses Google Sheets)
+      const success = await login(email, password);
 
-      if (querySnapshot.empty) {
-        setError('Email hoặc mật khẩu không đúng');
-        setIsLoading(false);
-        return;
-      }
-
-      let isValidLogin = false;
-      let staffName = '';
-      querySnapshot.forEach((doc) => {
-        const staffData = doc.data() as Staff;
-        if (staffData.email === email && staffData.password === password) {
-          isValidLogin = true;
-          staffName = staffData.name;
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('staffId', staffData.id);
-          localStorage.setItem('staffName', staffData.name);
-        }
-      });
-
-      if (isValidLogin) {
-        // Show success toast with user's name
+      if (success) {
         toast({
-          variant: "success" as any,
           title: "Đăng nhập thành công!",
-          description: `Chào mừng ${staffName || 'bạn'} quay trở lại!`,
+          description: `Chào mừng bạn quay trở lại!`,
           duration: 3000,
         });
 
-        // Refresh auth context to load user data
+        // Redirect to home page
         setTimeout(() => {
-          refreshAuth();
           router.push('/');
         }, 1500);
       } else {
@@ -88,7 +64,7 @@ export default function LoginPage() {
           />
         </div>
         <h1 className="text-2xl font-bold tracking-wider">
-          QUẢN LÝ PHÒNG KHÁM
+          QUẢN LÝ SPA
         </h1>
         <p className="text-sm text-primary-foreground/80 mt-1">
           Đăng nhập vào hệ thống
@@ -163,7 +139,7 @@ export default function LoginPage() {
                     Email: <span className="font-mono bg-background px-1 rounded">minh.bs@clinic.com</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                    Mật khẩu: <span className="font-mono bg-background px-1 rounded">111</span>
+                    Mật khẩu: <span className="font-mono bg-background px-1 rounded">minh123</span>
                     </p>
                 </div>
             </CardContent>

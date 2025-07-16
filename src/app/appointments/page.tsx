@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { appointments as mockAppointments, patients as mockPatients, staff as mockStaff, invoices as mockInvoices } from '@/lib/mock-data';
 import { PlusCircle, Calendar as CalendarIcon, Search, UserPlus, Users, CreditCard, Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -33,7 +32,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { 
-  seedAndFetchCollection, 
+  getCollectionData, 
   addAppointment, 
   updateAppointment, 
   deleteAppointment,
@@ -78,21 +77,21 @@ export default function AppointmentsPage() {
     async function loadData() {
         try {
             const [patientsData, appointmentsData, invoicesData, staffData] = await Promise.all([
-                seedAndFetchCollection('patients', mockPatients),
-                seedAndFetchCollection('appointments', mockAppointments),
-                seedAndFetchCollection('invoices', mockInvoices),
-                seedAndFetchCollection('staff', mockStaff),
+                getCollectionData<Patient>('patients'),
+                getCollectionData<Appointment>('appointments'),
+                getCollectionData<Invoice>('invoices'),
+                getCollectionData<Staff>('staff'),
             ]);
             setPatients(patientsData);
             setAppointments(appointmentsData);
             setInvoices(invoicesData);
             setStaff(staffData);
         } catch (error) {
-            console.error("Failed to load data from Firestore", error);
+            console.error("Failed to load data from Google Sheets", error);
             toast({
                 variant: 'destructive',
                 title: 'Lỗi tải dữ liệu',
-                description: 'Không thể tải dữ liệu từ máy chủ.'
+                description: 'Không thể tải dữ liệu từ Google Sheets.'
             });
         } finally {
             setLoading(false);
@@ -433,7 +432,7 @@ export default function AppointmentsPage() {
               <DialogTrigger asChild>
                 <Button>
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Đặt lịch khám
+                  Đặt lịch hẹn
                 </Button>
               </DialogTrigger>
               <DialogContent>

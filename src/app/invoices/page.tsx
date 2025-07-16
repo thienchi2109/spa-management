@@ -18,9 +18,9 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { invoices as mockInvoices } from '@/lib/mock-data';
 import { Printer, Pencil, CreditCard, Loader2 } from 'lucide-react';
 import type { Invoice, InvoiceItem } from '@/lib/types';
+import { getCollectionData } from '@/lib/sheets-utils';
 import {
   Dialog,
   DialogContent,
@@ -32,9 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { formatDate } from '@/lib/utils';
 import { InvoiceForm } from './components/invoice-form';
-import { seedAndFetchCollection } from '@/lib/firestore-utils';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { updateDocument } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
 
 const getStatusVariant = (status: Invoice['status']) => {
@@ -120,14 +118,14 @@ export default function InvoicesPage() {
     useEffect(() => {
         async function loadData() {
             try {
-                const invoicesData = await seedAndFetchCollection('invoices', mockInvoices);
+                const invoicesData = await getCollectionData<Invoice>('invoices');
                 setInvoices(invoicesData);
             } catch (error) {
-                console.error("Failed to load invoices from Firestore", error);
+                console.error("Failed to load invoices from Google Sheets", error);
                 toast({
                     variant: 'destructive',
                     title: 'Lỗi tải dữ liệu',
-                    description: 'Không thể tải hóa đơn từ máy chủ.',
+                    description: 'Không thể tải hóa đơn từ Google Sheets.',
                 });
             } finally {
                 setLoading(false);
@@ -138,10 +136,15 @@ export default function InvoicesPage() {
 
     const handleUpdateInvoiceStatus = async (invoiceId: string, newStatus: Invoice['status']) => {
         try {
-            const invoiceRef = doc(db, 'invoices', invoiceId);
-            await updateDoc(invoiceRef, { status: newStatus });
+            // Find the invoice to update
+            const invoiceToUpdate = invoices.find(inv => inv.id === invoiceId);
+            if (!invoiceToUpdate) return;
+
+            const updatedInvoice = { ...invoiceToUpdate, status: newStatus };
+            await updateDocument<Invoice>('invoices', updatedInvoice);
+            
             const updatedInvoices = invoices.map(inv =>
-                inv.id === invoiceId ? { ...inv, status: newStatus } : inv
+                inv.id === invoiceId ? updatedInvoice : inv
             );
             setInvoices(updatedInvoices);
             toast({
@@ -171,8 +174,8 @@ export default function InvoicesPage() {
                 status: status,
             };
             
-            const invoiceRef = doc(db, 'invoices', editingInvoice.id);
-            await updateDoc(invoiceRef, updatedInvoice);
+            // Use Google Sheets instead of Firestore
+            await updateDocument<Invoice>('invoices', updatedInvoice);
 
             const updatedInvoices = invoices.map(inv => inv.id === editingInvoice.id ? updatedInvoice : inv);
             setInvoices(updatedInvoices);

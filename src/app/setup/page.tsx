@@ -150,9 +150,9 @@ export default function SetupPage() {
             <h4 className="font-semibold">Các sheet sẽ được tạo:</h4>
             <div className="grid gap-2 md:grid-cols-2">
               {[
-                { name: 'Patients', desc: 'Thông tin bệnh nhân' },
-                { name: 'Appointments', desc: 'Lịch hẹn khám' },
-                { name: 'Medications', desc: 'Kho thuốc' },
+                { name: 'Patients', desc: 'Thông tin khách hàng' },
+                { name: 'Appointments', desc: 'Lịch hẹn dịch vụ' },
+                { name: 'Medications', desc: 'Dịch vụ spa' },
                 { name: 'Invoices', desc: 'Hóa đơn' },
                 { name: 'Staff', desc: 'Nhân viên' },
                 { name: 'MedicalRecords', desc: 'Hồ sơ y tế' },
@@ -252,13 +252,13 @@ export default function SetupPage() {
                 </p>
                 <div className="flex gap-2 mt-2">
                   <Button variant="outline" size="sm" asChild>
-                    <a href="/patients">Quản lý bệnh nhân</a>
+                    <a href="/patients">Quản lý khách hàng</a>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
                     <a href="/appointments">Lịch hẹn</a>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <a href="/inventory">Kho thuốc</a>
+                    <a href="/inventory">Dịch vụ</a>
                   </Button>
                 </div>
               </div>

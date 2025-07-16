@@ -54,12 +54,14 @@ export const SHEET_CONFIG = {
   SPREADSHEET_ID: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || '',
   SHEETS: {
     patients: 'Patients',
+    customers: 'Customers',
     appointments: 'Appointments', 
     medications: 'Medications',
     invoices: 'Invoices',
     staff: 'Staff',
     medicalRecords: 'MedicalRecords',
-    prescriptions: 'Prescriptions'
+    prescriptions: 'Prescriptions',
+    services: 'SpaServices'
   }
 };
 
@@ -96,11 +98,39 @@ export function sheetDataToObjects<T>(
     headers.forEach((header, index) => {
       const value = row[index] || '';
       
-      // Try to parse JSON for object fields
-      if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
-        try {
-          obj[header] = JSON.parse(value);
-        } catch {
+      // Handle different data types based on field names
+      if (typeof value === 'string') {
+        // Handle numeric fields
+        if (['price', 'discountPrice', 'duration', 'preparationTime', 'cleanupTime', 'maxCapacity', 'birthYear', 'weight', 'amount', 'quantity', 'importPrice', 'sellPrice', 'stock', 'minStockThreshold', 'totalCost', 'unitPrice', 'patientAge', 'patientWeight', 'tongChiTieu'].includes(String(header))) {
+          // Remove currency symbols and formatting from Google Sheets
+          const cleanValue = value.toString().replace(/[₫đ,\s]/g, '').replace(/[^\d.-]/g, '');
+          const numValue = parseFloat(cleanValue);
+          
+          // If price seems too small (under 10000), multiply by 1000 for price-related fields
+          // This handles cases where Google Sheets returns 280 instead of 280000
+          if (['price', 'discountPrice', 'amount', 'totalCost', 'tongChiTieu'].includes(String(header)) && numValue > 0 && numValue < 10000) {
+            obj[header] = (numValue * 1000) as any;
+          } else {
+            obj[header] = (isNaN(numValue) ? 0 : numValue) as any;
+          }
+        }
+        // Handle boolean fields
+        else if (['isActive'].includes(String(header))) {
+          obj[header] = (value === 'true' || value === 'TRUE' || value === '1') as any;
+        }
+        // Handle array fields (JSON strings)
+        else if (value.startsWith('{') || value.startsWith('[')) {
+          try {
+            obj[header] = JSON.parse(value);
+          } catch {
+            obj[header] = value as any;
+          }
+        }
+        // Handle string arrays that might be comma-separated
+        else if (['requiredStaff', 'equipment', 'contraindications', 'benefits', 'medicalHistory'].includes(String(header)) && value.includes(',')) {
+          obj[header] = value.split(',').map(item => item.trim()) as any;
+        }
+        else {
           obj[header] = value as any;
         }
       } else {
@@ -119,9 +149,12 @@ export async function getSheetData<T>(
   try {
     const sheets = await initializeGoogleSheetsWithCredentials();
     
+    // Calculate the end column based on number of headers
+    const endColumn = String.fromCharCode(65 + Math.max(headers.length - 1, 25)); // At least Z
+    
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_CONFIG.SPREADSHEET_ID,
-      range: `${sheetName}!A:Z`, // Adjust range as needed
+      range: `${sheetName}!A:${endColumn}`,
     });
 
     const data = response.data.values || [];
@@ -168,9 +201,12 @@ export async function appendSheetData<T extends Record<string, any>>(
     
     const sheetData = objectsToSheetData(data, headers);
     
+    // Calculate the end column based on number of headers
+    const endColumn = String.fromCharCode(65 + Math.max(headers.length - 1, 25)); // At least Z
+    
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_CONFIG.SPREADSHEET_ID,
-      range: `${sheetName}!A:Z`,
+      range: `${sheetName}!A:${endColumn}`,
       valueInputOption: 'RAW',
       requestBody: {
         values: sheetData.slice(1), // Skip header row when appending

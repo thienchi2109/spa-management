@@ -51,7 +51,7 @@ export function Header() {
             <Link href="/" className="flex items-center gap-3">
               <Image src="https://i.postimg.cc/RCs26NTd/pharmacy-12481797.png" alt="Clinic Management Logo" width={28} height={28} />
               <h1 className="whitespace-nowrap text-xl font-headline font-semibold">
-                Quản lý phòng khám
+                Quản lý Spa
               </h1>
             </Link>
         </div>

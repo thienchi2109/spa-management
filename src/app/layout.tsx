@@ -5,8 +5,8 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { AuthWrapper } from '@/components/auth/auth-wrapper';
 
 export const metadata: Metadata = {
-  title: 'Quản lý phòng khám',
-  description: 'Quản lý hoạt động phòng khám hiệu quả.',
+  title: 'Quản lý Spa',
+  description: 'Quản lý hoạt động spa hiệu quả.',
 };
 
 export default function RootLayout({

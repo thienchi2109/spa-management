@@ -21,12 +21,12 @@ import { Button } from '@/components/ui/button';
 const mainNavItems = [
   { href: '/', label: 'Bảng điều khiển', icon: LayoutDashboard },
   { href: '/appointments', label: 'Lịch hẹn', icon: Calendar },
-  { href: '/inventory', label: 'Kho thuốc', icon: Pill },
+  { href: '/inventory', label: 'Dịch vụ', icon: Pill },
 ];
 
 const moreNavItems = [
-  { href: '/patients', label: 'Bệnh nhân', icon: 'Users' },
-  { href: '/staff', label: 'Nhân viên y tế', icon: 'Stethoscope' },
+  { href: '/patients', label: 'Khách hàng', icon: 'Users' },
+  { href: '/staff', label: 'Kỹ thuật viên', icon: 'Stethoscope' },
   { href: '/prescriptions', label: 'Đơn thuốc', icon: 'FileText' },
   { href: '/invoices', label: 'Hóa đơn', icon: 'FileText' },
   { href: '/ai-assistant', label: 'Trợ lý AI', icon: 'Bot' },

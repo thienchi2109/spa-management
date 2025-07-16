@@ -13,10 +13,23 @@ export interface Patient {
   documents?: PatientDocument[];
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  birthYear: number;
+  gender: 'Nam' | 'Nữ' | 'Male' | 'Female' | 'Other';
+  address: string;
+  phone: string;
+  lastVisit: string;
+  avatarUrl: string;
+  tongChiTieu: number; // Tổng chi tiêu của khách hàng
+}
+
 export interface Appointment {
   id: string;
   patientName: string;
   doctorName: string;
+  schedulerName: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -24,25 +37,25 @@ export interface Appointment {
   notes?: string;
 }
 
-export interface Medication {
+export interface SpaService {
   id: string;
-  name: string;
-  activeIngredient: string;        // Hoạt chất
-  concentration: string;           // Hàm lượng/Nồng độ (VD: 500mg, 250mg/5ml)
-  dosageForm: string;             // Dạng bào chế (Viên nén, Viên nang, Dung dịch, Thuốc mỡ...)
-  unit: string;                   // Đơn vị tính cơ bản (Viên, Vỉ, Hộp, Chai, Tuýp...)
-  manufacturer: string;           // Nhà sản xuất
-  manufacturerCountry: string;    // Nước sản xuất
-  registrationNumber: string;     // Số đăng ký (SĐK) do Cục Quản lý Dược cấp
-  supplier: string;               // Nhà cung cấp
-  importPrice: number;            // Giá nhập (VNĐ)
-  sellPrice: number;              // Giá bán (VNĐ)
-  storageLocation: string;        // Vị trí lưu kho (VD: Tủ A, Kệ 2, Ngăn 3)
-  minStockThreshold: number;      // Ngưỡng tồn kho tối thiểu
-  batchNo: string;               // Số lô
-  expiryDate: string;            // Ngày hết hạn
-  stock: number;                 // Số lượng tồn kho hiện tại
-  status?: string;               // Trạng thái (optional)
+  name: string;                    // Tên dịch vụ (VD: "Massage thư giãn", "Chăm sóc da mặt")
+  category: string;                // Danh mục (VD: "Massage", "Facial", "Body Treatment", "Nail Care")
+  description: string;             // Mô tả chi tiết dịch vụ
+  duration: number;                // Thời gian thực hiện (phút)
+  price: number;                   // Giá dịch vụ (VNĐ)
+  discountPrice?: number;          // Giá khuyến mãi (nếu có)
+  requiredStaff: string | string[]; // Loại kỹ thuật viên cần thiết
+  equipment?: string | string[];   // Thiết bị cần thiết
+  roomType?: string;               // Loại phòng (VD: "Phòng massage", "Phòng facial")
+  preparationTime?: number;        // Thời gian chuẩn bị (phút)
+  cleanupTime?: number;            // Thời gian dọn dẹp sau (phút)
+  maxCapacity?: number;            // Số khách tối đa (cho dịch vụ nhóm)
+  ageRestriction?: string;         // Giới hạn độ tuổi
+  contraindications?: string | string[]; // Chống chỉ định
+  benefits?: string | string[];    // Lợi ích của dịch vụ
+  aftercareInstructions?: string;  // Hướng dẫn chăm sóc sau
+  isActive: boolean;               // Trạng thái hoạt động
 }
 
 export interface InvoiceItem {
@@ -71,7 +84,7 @@ export interface PatientDocument {
 export interface Staff {
   id: string;
   name: string;
-  role: 'Bác sĩ' | 'Điều dưỡng' | 'admin';
+  role: 'Chuyên viên' | 'Kỹ thuật viên' | 'admin';
   avatarUrl: string;
   phone: string;
   email: string;
@@ -90,10 +103,10 @@ export interface MedicalRecord {
   appointmentId: string;
   date: string;
   doctorName: string;
-  symptoms: string;          // Triệu chứng
-  diagnosis: string;         // Chẩn đoán
-  treatment: string;         // Phương pháp điều trị
-  prescription?: string;     // Đơn thuốc (TODO: expand this to detailed prescription system)
+  symptoms: string;          // Tình trạng
+  diagnosis: string;         // Đánh giá
+  treatment: string;         // Phương pháp chăm sóc
+  prescription?: string;     // Sản phẩm sử dụng (TODO: expand this to detailed prescription system)
   nextAppointment?: string;  // Ngày hẹn tái khám
   notes?: string;           // Ghi chú thêm
 }

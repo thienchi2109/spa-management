@@ -12,11 +12,10 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { appointments as mockAppointments, invoices as mockInvoices, patients as mockPatients, medicalRecords as mockMedicalRecords, staticToday } from '@/lib/mock-data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UploadCloud, Phone, MapPin, HeartPulse, Loader2, Search, X, Trash2 } from 'lucide-react';
-import type { Patient, Appointment, Invoice, MedicalRecord } from '@/lib/types';
-import { formatDate, calculateAge, generatePatientId } from '@/lib/utils';
+import { UserPlus, Phone, MapPin, CreditCard, Loader2, Search, X, Trash2 } from 'lucide-react';
+import type { Customer, Appointment, Invoice } from '@/lib/types';
+import { formatDate, calculateAge, generateCustomerId } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -36,28 +35,29 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { PatientForm } from './components/patient-form';
-import { PatientDetail } from './components/patient-detail';
-import { seedAndFetchCollection, addPatient, updatePatient, deletePatient } from '@/lib/sheets-utils';
+import { CustomerForm } from './components/customer-form';
+import { CustomerDetail } from './components/customer-detail';
+import { getCollectionData, addCustomer, updateCustomer, deleteCustomer } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
 
-const translateGender = (gender: Patient['gender']) => {
+const translateGender = (gender: Customer['gender']) => {
     switch(gender) {
         case 'Male': return 'Nam';
         case 'Female': return 'Nữ';
         case 'Other': return 'Khác';
+        case 'Nam': return 'Nam';
+        case 'Nữ': return 'Nữ';
         default: return gender;
     }
 }
 
-export default function PatientsPage() {
-    const [patients, setPatients] = useState<Patient[]>([]);
+export default function CustomersPage() {
+    const [customers, setCustomers] = useState<Customer[]>([]);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const { toast } = useToast();
@@ -65,22 +65,20 @@ export default function PatientsPage() {
     useEffect(() => {
         async function loadData() {
             try {
-                const [patientsData, appointmentsData, invoicesData, medicalRecordsData] = await Promise.all([
-                    seedAndFetchCollection('patients', mockPatients),
-                    seedAndFetchCollection('appointments', mockAppointments),
-                    seedAndFetchCollection('invoices', mockInvoices),
-                    seedAndFetchCollection('medicalRecords', mockMedicalRecords),
+                const [customersData, appointmentsData, invoicesData] = await Promise.all([
+                    getCollectionData<Customer>('customers'),
+                    getCollectionData<Appointment>('appointments'),
+                    getCollectionData<Invoice>('invoices'),
                 ]);
-                setPatients(patientsData);
+                setCustomers(customersData);
                 setAppointments(appointmentsData);
                 setInvoices(invoicesData);
-                setMedicalRecords(medicalRecordsData);
             } catch (error) {
-                console.error("Failed to load data from Firestore", error);
+                console.error("Failed to load data from Google Sheets", error);
                 toast({
                     variant: 'destructive',
                     title: 'Lỗi tải dữ liệu',
-                    description: 'Không thể tải dữ liệu bệnh nhân từ máy chủ.'
+                    description: 'Không thể tải dữ liệu khách hàng từ Google Sheets.'
                 });
             } finally {
                 setLoading(false);
@@ -99,14 +97,13 @@ export default function PatientsPage() {
             .replace(/Đ/g, 'd');
     }, []);
 
-    // Get patients with appointments or in walk-in queue for today
-    const getTodayRelevantPatients = useCallback(() => {
+    // Get customers with appointments or in walk-in queue for today
+    const getTodayRelevantCustomers = useCallback(() => {
         // Use actual today date instead of static date
         const actualToday = new Date().toISOString().split('T')[0];
 
-        console.log('=== DEBUG getTodayRelevantPatients ===');
+        console.log('=== DEBUG getTodayRelevantCustomers ===');
         console.log('Total appointments loaded:', appointments.length);
-        console.log('staticToday (old):', staticToday);
         console.log('actualToday (using this):', actualToday);
 
         const todayAppointments = appointments.filter(app => {
@@ -114,33 +111,31 @@ export default function PatientsPage() {
             return app.date === actualToday;
         });
 
-        const relevantPatientNames = new Set(todayAppointments.map(app => app.patientName));
-        const relevantPatients = patients.filter(patient => relevantPatientNames.has(patient.name));
+        const relevantCustomerNames = new Set(todayAppointments.map(app => app.patientName));
+        const relevantCustomers = customers.filter(customer => relevantCustomerNames.has(customer.name));
 
-
-
-        return relevantPatients;
-    }, [patients, appointments]);
+        return relevantCustomers;
+    }, [customers, appointments]);
 
     // Search function across multiple fields
-    const searchPatients = useCallback((searchTerm: string, allPatients: Patient[]): Patient[] => {
+    const searchCustomers = useCallback((searchTerm: string, allCustomers: Customer[]): Customer[] => {
         try {
             if (!searchTerm.trim()) {
-                console.log('No search term - showing relevant patients for today');
-                const todayRelevant = getTodayRelevantPatients();
-                console.log('Today relevant patients:', todayRelevant.length);
+                console.log('No search term - showing relevant customers for today');
+                const todayRelevant = getTodayRelevantCustomers();
+                console.log('Today relevant customers:', todayRelevant.length);
 
                 return todayRelevant;
             }
 
             const normalizedSearch = normalizeVietnameseText(searchTerm.trim());
 
-            return allPatients.filter(patient => {
+            return allCustomers.filter(customer => {
                 try {
-                    const normalizedName = normalizeVietnameseText(patient.name || '');
-                    const normalizedAddress = normalizeVietnameseText(patient.address || '');
-                    const normalizedPhone = (patient.phone || '').replace(/\s+/g, '');
-                    const birthYearStr = (patient.birthYear || '').toString();
+                    const normalizedName = normalizeVietnameseText(customer.name || '');
+                    const normalizedAddress = normalizeVietnameseText(customer.address || '');
+                    const normalizedPhone = (customer.phone || '').replace(/\s+/g, '');
+                    const birthYearStr = (customer.birthYear || '').toString();
 
                     return (
                         normalizedName.includes(normalizedSearch) ||
@@ -149,20 +144,20 @@ export default function PatientsPage() {
                         birthYearStr.includes(normalizedSearch)
                     );
                 } catch (error) {
-                    console.warn('Error filtering patient:', patient.id, error);
+                    console.warn('Error filtering customer:', customer.id, error);
                     return false;
                 }
             });
         } catch (error) {
-            console.error('Error in searchPatients:', error);
+            console.error('Error in searchCustomers:', error);
             toast({
                 variant: 'destructive',
                 title: 'Lỗi tìm kiếm',
-                description: 'Đã có lỗi xảy ra khi tìm kiếm bệnh nhân.',
+                description: 'Đã có lỗi xảy ra khi tìm kiếm khách hàng.',
             });
-            return getTodayRelevantPatients();
+            return getTodayRelevantCustomers();
         }
-    }, [normalizeVietnameseText, getTodayRelevantPatients, toast]);
+    }, [normalizeVietnameseText, getTodayRelevantCustomers, toast]);
 
     // Debounced search with loading state
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -177,85 +172,85 @@ export default function PatientsPage() {
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    // Filtered patients based on search
-    const filteredPatients = useMemo(() => {
-        const result = searchPatients(debouncedSearchTerm, patients);
-        console.log('Total patients in database:', patients.length);
-        console.log('Filtered patients result:', result.length);
+    // Filtered customers based on search
+    const filteredCustomers = useMemo(() => {
+        const result = searchCustomers(debouncedSearchTerm, customers);
+        console.log('Total customers in database:', customers.length);
+        console.log('Filtered customers result:', result.length);
         console.log('Search term:', debouncedSearchTerm);
         return result;
-    }, [searchPatients, debouncedSearchTerm, patients]);
+    }, [searchCustomers, debouncedSearchTerm, customers]);
 
-    const handleSavePatient = async (patientData: Omit<Patient, 'id' | 'lastVisit' | 'avatarUrl' | 'documents'>) => {
+    const handleSaveCustomer = async (customerData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) => {
         try {
-            // Generate custom patient ID
-            const patientId = generatePatientId(patients);
+            // Generate custom customer ID
+            const customerId = generateCustomerId(customers);
 
-            const patientToAdd = {
-                ...patientData,
-                id: patientId,
+            const customerToAdd = {
+                ...customerData,
+                id: customerId,
                 lastVisit: new Date().toISOString().split('T')[0],
                 avatarUrl: 'https://placehold.co/100x100.png',
-                documents: [],
+                tongChiTieu: 0,
             };
 
             // Use Google Sheets instead of Firestore
-            await addPatient(patientToAdd);
-            setPatients(prev => [...prev, patientToAdd]);
+            await addCustomer(customerToAdd);
+            setCustomers(prev => [...prev, customerToAdd]);
             setIsCreateDialogOpen(false);
             toast({
                 title: 'Thêm thành công',
-                description: `Hồ sơ bệnh nhân ${patientToAdd.name} đã được tạo với mã ${patientId}.`,
+                description: `Hồ sơ khách hàng ${customerToAdd.name} đã được tạo với mã ${customerId}.`,
             });
         } catch (error) {
-            console.error("Error adding patient: ", error);
+            console.error("Error adding customer: ", error);
             toast({
                 variant: 'destructive',
                 title: 'Thêm thất bại',
-                description: 'Đã có lỗi xảy ra khi thêm bệnh nhân mới.',
+                description: 'Đã có lỗi xảy ra khi thêm khách hàng mới.',
             });
         }
     };
 
-    const handleDeletePatient = async (patientId: string, patientName: string) => {
+    const handleDeleteCustomer = async (customerId: string, customerName: string) => {
         try {
-            await deletePatient(patientId);
-            setPatients(prev => prev.filter(patient => patient.id !== patientId));
+            await deleteCustomer(customerId);
+            setCustomers(prev => prev.filter(customer => customer.id !== customerId));
             toast({
                 title: 'Xóa thành công',
-                description: `Hồ sơ bệnh nhân ${patientName} đã được xóa.`,
+                description: `Hồ sơ khách hàng ${customerName} đã được xóa.`,
             });
         } catch (error) {
-            console.error("Error deleting patient: ", error);
+            console.error("Error deleting customer: ", error);
             toast({
                 variant: 'destructive',
                 title: 'Xóa thất bại',
-                description: 'Đã có lỗi xảy ra khi xóa hồ sơ bệnh nhân.',
+                description: 'Đã có lỗi xảy ra khi xóa hồ sơ khách hàng.',
             });
         }
     };
     
-    const handleUpdatePatient = async (updatedPatientData: Patient) => {
+    const handleUpdateCustomer = async (updatedCustomerData: Customer) => {
         try {
             // Use Google Sheets instead of Firestore
-            await updatePatient(updatedPatientData);
+            await updateCustomer(updatedCustomerData);
 
-            setPatients(prevPatients => 
-                prevPatients.map(p =>
-                    p.id === updatedPatientData.id ? updatedPatientData : p
+            setCustomers(prevCustomers => 
+                prevCustomers.map(c =>
+                    c.id === updatedCustomerData.id ? updatedCustomerData : c
                 )
             );
-            setSelectedPatient(updatedPatientData);
+            setSelectedCustomer(updatedCustomerData);
              toast({
                 title: "Cập nhật thành công",
-                description: `Thông tin bệnh nhân ${updatedPatientData.name} đã được lưu.`,
+                description: `Thông tin khách hàng ${updatedCustomerData.name} đã được lưu.`,
             });
         } catch (e) {
-            console.error("Error updating patient: ", e);
+            console.error("Error updating customer: ", e);
             toast({
                 variant: 'destructive',
                 title: 'Cập nhật thất bại',
-                description: 'Đã có lỗi xảy ra khi lưu thông tin bệnh nhân.',
+                description: 'Đã có lỗi xảy ra khi lưu thông tin khách hàng.',
             });
         }
     };
@@ -271,7 +266,7 @@ export default function PatientsPage() {
     return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-headline font-bold">Hồ sơ bệnh nhân</h1>
+        <h1 className="text-2xl font-headline font-bold">Khách hàng</h1>
         <div className="flex items-center gap-4">
           {/* Search Input */}
           <div className="relative">
@@ -295,21 +290,21 @@ export default function PatientsPage() {
             )}
           </div>
 
-          {/* Add Patient Button */}
+          {/* Add Customer Button */}
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                   <Button>
-                      <UploadCloud className="mr-2 h-4 w-4" />
-                      Thêm bệnh nhân mới
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Thêm khách hàng mới
                   </Button>
               </DialogTrigger>
               <DialogContent>
                   <DialogHeader>
-                      <DialogTitle>Thêm hồ sơ bệnh nhân mới</DialogTitle>
-                      <DialogDescription>Nhập thông tin chi tiết cho bệnh nhân.</DialogDescription>
+                      <DialogTitle>Thêm khách hàng mới</DialogTitle>
+                      <DialogDescription>Nhập thông tin chi tiết cho khách hàng.</DialogDescription>
                   </DialogHeader>
-                  <PatientForm
-                      onSave={handleSavePatient}
+                  <CustomerForm
+                      onSave={handleSaveCustomer}
                       onClose={() => setIsCreateDialogOpen(false)}
                   />
               </DialogContent>
@@ -322,24 +317,24 @@ export default function PatientsPage() {
         {isSearching && <Loader2 className="h-4 w-4 animate-spin" />}
         <span>
           {searchTerm ? (
-            <>Tìm thấy {filteredPatients.length} bệnh nhân khớp với "{searchTerm}"</>
+            <>Tìm thấy {filteredCustomers.length} khách hàng khớp với "{searchTerm}"</>
           ) : (
-            <>Hiển thị {filteredPatients.length} bệnh nhân có lịch hẹn hôm nay (ngày {new Date().toLocaleDateString('vi-VN')})</>
+            <>Hiển thị {filteredCustomers.length} khách hàng có lịch hẹn hôm nay (ngày {new Date().toLocaleDateString('vi-VN')})</>
           )}
         </span>
       </div>
 
-      {filteredPatients.length === 0 ? (
+      {filteredCustomers.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground">
             <Search className="mx-auto h-12 w-12 mb-4" />
             <p className="text-lg font-semibold">
-              {searchTerm ? 'Không tìm thấy bệnh nhân' : 'Không có bệnh nhân nào'}
+              {searchTerm ? 'Không tìm thấy khách hàng' : 'Không có khách hàng nào'}
             </p>
             <p>
               {searchTerm
-                ? `Không có bệnh nhân nào khớp với tìm kiếm "${searchTerm}".`
-                : 'Không có bệnh nhân nào có lịch hẹn hôm nay.'
+                ? `Không có khách hàng nào khớp với tìm kiếm "${searchTerm}".`
+                : 'Không có khách hàng nào có lịch hẹn hôm nay.'
               }
             </p>
             {searchTerm && (
@@ -355,17 +350,17 @@ export default function PatientsPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredPatients.map((patient) => (
-            <Card key={patient.id} className="flex flex-col">
+          {filteredCustomers.map((customer) => (
+            <Card key={customer.id} className="flex flex-col">
               <CardHeader className="flex flex-row items-start gap-4 space-y-0">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={patient.avatarUrl} alt={patient.name} data-ai-hint="person portrait"/>
-                  <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint="person portrait"/>
+                  <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="grid gap-1">
-                  <CardTitle className="font-headline">{patient.name}</CardTitle>
+                  <CardTitle className="font-headline">{customer.name}</CardTitle>
                   <CardDescription>
-                    {calculateAge(patient.birthYear)} tuổi, {translateGender(patient.gender)}
+                    {calculateAge(customer.birthYear)} tuổi, {translateGender(customer.gender)}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -373,22 +368,22 @@ export default function PatientsPage() {
                   <div className="text-sm text-muted-foreground space-y-2">
                       <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 flex-shrink-0" />
-                          <span>{patient.phone}</span>
+                          <span>{customer.phone}</span>
                       </div>
                       <div className="flex items-start gap-2">
                           <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span>{patient.address}</span>
+                          <span>{customer.address}</span>
                       </div>
-                      {patient.medicalHistory && (
-                          <div className="flex items-start gap-2 pt-2">
-                              <HeartPulse className="h-4 w-4 flex-shrink-0 mt-0.5 text-primary" />
-                              <p className="text-sm text-foreground line-clamp-2">{patient.medicalHistory}</p>
-                          </div>
-                      )}
+                      <div className="flex items-center gap-2 pt-2">
+                          <CreditCard className="h-4 w-4 flex-shrink-0 text-green-600" />
+                          <span className="text-sm font-medium text-green-600">
+                            Tổng chi tiêu: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(customer.tongChiTieu)}
+                          </span>
+                      </div>
                   </div>
               </CardContent>
               <CardFooter className="flex justify-between items-center">
-                  <p className="text-xs text-muted-foreground">Lần khám cuối: {formatDate(patient.lastVisit)}</p>
+                  <p className="text-xs text-muted-foreground">Lần đến cuối: {formatDate(customer.lastVisit)}</p>
                   <div className="flex items-center gap-2">
                       <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -398,24 +393,24 @@ export default function PatientsPage() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                               <AlertDialogHeader>
-                                  <AlertDialogTitle>Xác nhận xóa hồ sơ</AlertDialogTitle>
+                                  <AlertDialogTitle>Xác nhận xóa khách hàng</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                      Bạn có chắc chắn muốn xóa hồ sơ bệnh nhân <strong>{patient.name}</strong>?
+                                      Bạn có chắc chắn muốn xóa khách hàng <strong>{customer.name}</strong>?
                                       Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.
                                   </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                   <AlertDialogCancel>Hủy</AlertDialogCancel>
                                   <AlertDialogAction
-                                      onClick={() => handleDeletePatient(patient.id, patient.name)}
+                                      onClick={() => handleDeleteCustomer(customer.id, customer.name)}
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
-                                      Xóa hồ sơ
+                                      Xóa khách hàng
                                   </AlertDialogAction>
                               </AlertDialogFooter>
                           </AlertDialogContent>
                       </AlertDialog>
-                      <Button variant="outline" size="sm" onClick={() => setSelectedPatient(patient)}>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedCustomer(customer)}>
                           Xem chi tiết
                       </Button>
                   </div>
@@ -425,16 +420,15 @@ export default function PatientsPage() {
         </div>
       )}
 
-      <Dialog open={!!selectedPatient} onOpenChange={(open) => !open && setSelectedPatient(null)}>
+      <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
         <DialogContent className="sm:max-w-3xl">
-          {selectedPatient && (
-            <PatientDetail
-              patient={selectedPatient}
+          {selectedCustomer && (
+            <CustomerDetail
+              customer={selectedCustomer}
               appointments={appointments}
               invoices={invoices}
-              medicalRecords={medicalRecords}
-              onUpdatePatient={handleUpdatePatient}
-              onClose={() => setSelectedPatient(null)}
+              onUpdateCustomer={handleUpdateCustomer}
+              onClose={() => setSelectedCustomer(null)}
             />
           )}
         </DialogContent>

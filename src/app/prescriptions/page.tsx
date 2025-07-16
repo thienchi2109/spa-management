@@ -17,12 +17,13 @@ import {
   type Prescription
 } from '@/components/prescriptions';
 
-// Mock data for testing
-import { prescriptions as mockPrescriptions, patients, medications } from '@/lib/mock-data';
+import { getCollectionData } from '@/lib/sheets-utils';
 
 export default function PrescriptionsPage() {
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(mockPrescriptions);
-  const [filteredPrescriptions, setFilteredPrescriptions] = useState<Prescription[]>(mockPrescriptions);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [filteredPrescriptions, setFilteredPrescriptions] = useState<Prescription[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
@@ -38,6 +39,31 @@ export default function PrescriptionsPage() {
     name: 'Bs. Minh',
     license: '001234/BYT-CCHN'
   };
+
+  // Load data from Google Sheets
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [prescriptionsData, patientsData] = await Promise.all([
+          getCollectionData<Prescription>('prescriptions'),
+          getCollectionData('patients'),
+        ]);
+        setPrescriptions(prescriptionsData);
+        setPatients(patientsData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Lỗi tải dữ liệu',
+          description: 'Không thể tải dữ liệu từ Google Sheets.',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [toast]);
 
   useEffect(() => {
     let filtered = prescriptions;
@@ -301,7 +327,7 @@ export default function PrescriptionsPage() {
       <PrescriptionDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        patient={patients[0]} // Mock patient for testing
+        patient={patients.length > 0 ? patients[0] : null} // Use actual patient data from Google Sheets
         doctorName={currentDoctor.name}
         doctorId={currentDoctor.id}
         doctorLicense={currentDoctor.license}

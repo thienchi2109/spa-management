@@ -1,12 +1,14 @@
 // src/lib/sheets-utils.ts
 import type { 
   Patient, 
+  Customer,
   Appointment, 
   Medication, 
   Invoice, 
   Staff, 
   MedicalRecord, 
-  Prescription 
+  Prescription,
+  SpaService
 } from './types';
 
 // API client functions to interact with our API routes
@@ -78,7 +80,7 @@ const PATIENT_HEADERS: (keyof Patient)[] = [
 ];
 
 const APPOINTMENT_HEADERS: (keyof Appointment)[] = [
-  'id', 'patientName', 'doctorName', 'date', 'startTime', 'endTime', 'status', 'notes'
+  'id', 'patientName', 'doctorName', 'schedulerName', 'date', 'startTime', 'endTime', 'status', 'notes'
 ];
 
 const MEDICATION_HEADERS: (keyof Medication)[] = [
@@ -110,27 +112,29 @@ const PRESCRIPTION_HEADERS: (keyof Prescription)[] = [
   'createdAt', 'updatedAt'
 ];
 
-// Generic function to seed and fetch collection data from Google Sheets
-export async function seedAndFetchCollection<T extends { id: string }>(
-  collectionName: string,
-  mockData: T[]
+const SERVICE_HEADERS: (keyof SpaService)[] = [
+  'id', 'name', 'category', 'description', 'duration', 'price', 'discountPrice',
+  'requiredStaff', 'equipment', 'roomType', 'preparationTime', 'cleanupTime',
+  'maxCapacity', 'ageRestriction', 'contraindications', 'benefits',
+  'aftercareInstructions', 'isActive'
+];
+
+const CUSTOMER_HEADERS: (keyof Customer)[] = [
+  'id', 'name', 'birthYear', 'gender', 'address', 'phone', 'lastVisit', 'avatarUrl', 'tongChiTieu'
+];
+
+// Function to get collection data from Google Sheets (no more seeding with mock data)
+export async function getCollectionData<T extends { id: string }>(
+  collectionName: string
 ): Promise<T[]> {
   try {
-    // Try to get existing data
+    // Get existing data from Google Sheets
     const existingData = await getSheetData<T>(collectionName);
-    
-    // If no data exists, seed with mock data
-    if (existingData.length === 0 && mockData.length > 0) {
-      console.log(`Seeding '${collectionName}' sheet with mock data...`);
-      await writeSheetData(collectionName, mockData);
-      return mockData;
-    }
-    
     return existingData;
   } catch (error) {
-    console.error(`Error in seedAndFetchCollection for ${collectionName}:`, error);
-    // Return mock data as fallback
-    return mockData;
+    console.error(`Error in getCollectionData for ${collectionName}:`, error);
+    // Return empty array on error instead of mock data
+    return [];
   }
 }
 
@@ -144,8 +148,10 @@ function getSheetName(collectionName: string): string {
 function getHeaders<T>(collectionName: string): (keyof T)[] {
   const headerMap: Record<string, any[]> = {
     'patients': PATIENT_HEADERS,
+    'customers': CUSTOMER_HEADERS,
     'appointments': APPOINTMENT_HEADERS,
-    'medications': MEDICATION_HEADERS,
+    'services': SERVICE_HEADERS,
+    'SpaServices': SERVICE_HEADERS,
     'invoices': INVOICE_HEADERS,
     'staff': STAFF_HEADERS,
     'medicalRecords': MEDICAL_RECORD_HEADERS,
@@ -274,6 +280,33 @@ export async function deleteMedication(medicationId: string): Promise<void> {
   }
 }
 
+// Service CRUD operations
+export async function updateService(service: SpaService): Promise<void> {
+  if (!service.id) {
+    throw new Error("Service ID is required to update.");
+  }
+  
+  try {
+    await updateSheetData('services', service);
+  } catch (error) {
+    console.error('Error updating service:', error);
+    throw error;
+  }
+}
+
+export async function deleteService(serviceId: string): Promise<void> {
+  if (!serviceId) {
+    throw new Error("Service ID is required to delete.");
+  }
+  
+  try {
+    await deleteSheetData('services', serviceId);
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    throw error;
+  }
+}
+
 // Generic CRUD operations for other entities
 export async function addDocument<T extends { id: string }>(
   collectionName: string,
@@ -373,4 +406,17 @@ export async function updateMedicalRecord(record: MedicalRecord): Promise<void> 
 
 export async function deleteMedicalRecord(recordId: string): Promise<void> {
   return deleteDocument('medicalRecords', recordId);
+}
+
+// Customer CRUD operations
+export async function addCustomer(customer: Omit<Customer, 'id'> & { id?: string }): Promise<Customer> {
+  return addDocument<Customer>('customers', customer);
+}
+
+export async function updateCustomer(customer: Customer): Promise<void> {
+  return updateDocument<Customer>('customers', customer);
+}
+
+export async function deleteCustomer(customerId: string): Promise<void> {
+  return deleteDocument('customers', customerId);
 }

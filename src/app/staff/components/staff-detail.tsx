@@ -36,10 +36,10 @@ interface StaffDetailProps {
 
 const translateRole = (role: Staff['role']) => {
   switch (role) {
-    case 'Bác sĩ':
-      return 'Bác sĩ';
-    case 'Điều dưỡng':
-      return 'Điều dưỡng';
+    case 'Chuyên viên':
+      return 'Chuyên viên';
+    case 'Kỹ thuật viên':
+      return 'Kỹ thuật viên';
     case 'admin':
       return 'Quản trị viên';
     default:
@@ -49,7 +49,7 @@ const translateRole = (role: Staff['role']) => {
 
 const getRoleBadgeVariant = (role: Staff['role']) => {
   switch (role) {
-    case 'Bác sĩ':
+    case 'Chuyên viên':
       return 'default';
     case 'admin':
       return 'destructive';
@@ -249,7 +249,7 @@ export function StaffDetail({ staff, appointments = [], medicalRecords = [], onE
                 Tài khoản này có quyền quản trị hệ thống, bao gồm:
               </div>
               <ul className="mt-2 text-sm space-y-1 text-muted-foreground">
-                <li>• Quản lý nhân viên y tế</li>
+                <li>• Quản lý kỹ thuật viên</li>
                 <li>• Xem báo cáo tổng quan</li>
                 <li>• Cấu hình hệ thống</li>
                 <li>• Quản lý dữ liệu</li>

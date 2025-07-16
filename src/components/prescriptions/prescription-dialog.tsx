@@ -64,7 +64,7 @@ export default function PrescriptionDialog({
           </DialogTitle>
           {patient && (
             <p className="text-sm text-gray-600">
-              Bệnh nhân: <span className="font-medium">{patient.name}</span>
+              Khách hàng: <span className="font-medium">{patient.name}</span>
               {patient.id && (
                 <span className="ml-2 text-xs bg-gray-100 px-2 py-1 rounded">
                   {patient.id}

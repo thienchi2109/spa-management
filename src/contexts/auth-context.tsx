@@ -2,8 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Staff } from '@/lib/types';
-import { staff as mockStaff } from '@/lib/mock-data';
-import { seedAndFetchCollection } from '@/lib/sheets-utils';
+import { getCollectionData } from '@/lib/sheets-utils';
 
 interface AuthContextType {
   currentUser: Staff | null;
@@ -24,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadStaffData = async () => {
       try {
-        const staffData = await seedAndFetchCollection<Staff>('staff', mockStaff);
+        const staffData = await getCollectionData<Staff>('staff');
         setAllStaff(staffData);
       } catch (error) {
         console.error('Error loading staff data:', error);
