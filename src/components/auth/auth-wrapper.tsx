@@ -25,12 +25,14 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
     // If user is not logged in and not on the login page, redirect to login
     if (!currentUser && !isAuthPage) {
-      router.push('/login');
+      console.log('User not authenticated, redirecting to login');
+      router.replace('/login'); // Use replace instead of push to prevent back navigation
     }
 
     // If user is logged in and tries to access the login page, redirect to home
     if (currentUser && isAuthPage) {
-      router.push('/');
+      console.log('User already authenticated, redirecting to home');
+      router.replace('/'); // Use replace instead of push
     }
   }, [currentUser, isLoading, router, pathname]);
 

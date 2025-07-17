@@ -88,9 +88,10 @@ interface AppointmentDetailProps {
   onUpdateStatus: (appointmentId: string, newStatus: Appointment['status']) => void;
   onUpdateInvoiceStatus: (invoiceId: string, newStatus: Invoice['status']) => void;
   onCreateInvoice: (appointment: Appointment) => void;
+  onEditAppointment: (appointment: Appointment) => void;
 }
 
-export function AppointmentDetail({ appointment, staffMember, invoice, onUpdateStatus, onUpdateInvoiceStatus, onCreateInvoice }: AppointmentDetailProps) {
+export function AppointmentDetail({ appointment, staffMember, invoice, onUpdateStatus, onUpdateInvoiceStatus, onCreateInvoice, onEditAppointment }: AppointmentDetailProps) {
   const [currentStatus, setCurrentStatus] = useState<Appointment['status']>(appointment.status);
   const [currentInvoiceStatus, setCurrentInvoiceStatus] = useState<Invoice['status'] | undefined>(invoice?.status);
   const statusInfo = getStatusInfo(currentStatus);
@@ -227,6 +228,11 @@ export function AppointmentDetail({ appointment, staffMember, invoice, onUpdateS
             )}
         </div>
         <DialogFooter className="flex justify-end gap-2">
+          {appointment.status !== 'Completed' && (
+            <DialogClose asChild>
+                <Button variant="secondary" onClick={() => onEditAppointment(appointment)}>Sửa</Button>
+            </DialogClose>
+          )}
           <DialogClose asChild>
             <Button type="button" variant="outline">Hủy</Button>
           </DialogClose>

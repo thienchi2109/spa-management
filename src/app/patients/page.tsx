@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserPlus, Phone, MapPin, CreditCard, Loader2, Search, X, Trash2 } from 'lucide-react';
+import { UserPlus, Phone, MapPin, CreditCard, Loader2, Search, X, Trash2, Users, Calendar } from 'lucide-react';
 import type { Customer, Appointment, Invoice } from '@/lib/types';
 import { formatDate, calculateAge, generateCustomerId } from '@/lib/utils';
 import {
@@ -58,6 +58,7 @@ export default function CustomersPage() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [showAllCustomers, setShowAllCustomers] = useState(false);
     const { toast } = useToast();
 
     // Use cached data from context
@@ -97,14 +98,18 @@ export default function CustomersPage() {
     }, [customers, appointments]);
 
     // Search function across multiple fields
-    const searchCustomers = useCallback((searchTerm: string, allCustomers: Customer[]): Customer[] => {
+    const searchCustomers = useCallback((searchTerm: string, allCustomers: Customer[], showAll: boolean): Customer[] => {
         try {
             if (!searchTerm.trim()) {
-                console.log('No search term - showing relevant customers for today');
-                const todayRelevant = getTodayRelevantCustomers();
-                console.log('Today relevant customers:', todayRelevant.length);
-
-                return todayRelevant;
+                if (showAll) {
+                    console.log('No search term - showing all customers');
+                    return allCustomers;
+                } else {
+                    console.log('No search term - showing relevant customers for today');
+                    const todayRelevant = getTodayRelevantCustomers();
+                    console.log('Today relevant customers:', todayRelevant.length);
+                    return todayRelevant;
+                }
             }
 
             const normalizedSearch = normalizeVietnameseText(searchTerm.trim());
@@ -153,12 +158,13 @@ export default function CustomersPage() {
 
     // Filtered customers based on search
     const filteredCustomers = useMemo(() => {
-        const result = searchCustomers(debouncedSearchTerm, customers);
+        const result = searchCustomers(debouncedSearchTerm, customers, showAllCustomers);
         console.log('Total customers in database:', customers.length);
         console.log('Filtered customers result:', result.length);
         console.log('Search term:', debouncedSearchTerm);
+        console.log('Show all customers:', showAllCustomers);
         return result;
-    }, [searchCustomers, debouncedSearchTerm, customers]);
+    }, [searchCustomers, debouncedSearchTerm, customers, showAllCustomers]);
 
     const handleSaveCustomer = async (customerData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) => {
         try {
@@ -245,10 +251,34 @@ export default function CustomersPage() {
     }
   
     return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-headline font-bold">Khách hàng</h1>
+        <h1 className="text-3xl font-headline font-bold spa-text-gradient">Khách hàng</h1>
         <div className="flex items-center gap-4">
+          {/* Toggle Button */}
+          <Button
+            variant={showAllCustomers ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowAllCustomers(!showAllCustomers)}
+            className={`flex items-center gap-2 transition-all duration-300 ${
+              showAllCustomers 
+                ? "spa-button-primary" 
+                : "border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50"
+            }`}
+          >
+            {showAllCustomers ? (
+              <>
+                <Users className="h-4 w-4" />
+                Tất cả khách hàng
+              </>
+            ) : (
+              <>
+                <Calendar className="h-4 w-4" />
+                Hôm nay
+              </>
+            )}
+          </Button>
+
           {/* Search Input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -257,13 +287,13 @@ export default function CustomersPage() {
               placeholder="Tìm theo tên, địa chỉ, số điện thoại, năm sinh..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-10 w-80"
+              className="pl-10 pr-10 w-80 spa-input"
             />
             {searchTerm && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-accent/10"
                 onClick={() => setSearchTerm('')}
               >
                 <X className="h-4 w-4" />
@@ -274,15 +304,17 @@ export default function CustomersPage() {
           {/* Add Customer Button */}
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                  <Button>
+                  <Button className="spa-button-accent">
                       <UserPlus className="mr-2 h-4 w-4" />
                       Thêm khách hàng mới
                   </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="spa-glass">
                   <DialogHeader>
-                      <DialogTitle>Thêm khách hàng mới</DialogTitle>
-                      <DialogDescription>Nhập thông tin chi tiết cho khách hàng.</DialogDescription>
+                      <DialogTitle className="text-xl font-headline">Thêm khách hàng mới</DialogTitle>
+                      <DialogDescription className="text-muted-foreground">
+                        Nhập thông tin chi tiết cho khách hàng.
+                      </DialogDescription>
                   </DialogHeader>
                   <CustomerForm
                       onSave={handleSaveCustomer}
@@ -299,6 +331,8 @@ export default function CustomersPage() {
         <span>
           {searchTerm ? (
             <>Tìm thấy {filteredCustomers.length} khách hàng khớp với "{searchTerm}"</>
+          ) : showAllCustomers ? (
+            <>Hiển thị tất cả {filteredCustomers.length} khách hàng</>
           ) : (
             <>Hiển thị {filteredCustomers.length} khách hàng có lịch hẹn hôm nay (ngày {new Date().toLocaleDateString('vi-VN')})</>
           )}
@@ -306,22 +340,26 @@ export default function CustomersPage() {
       </div>
 
       {filteredCustomers.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground">
-            <Search className="mx-auto h-12 w-12 mb-4" />
-            <p className="text-lg font-semibold">
+        <Card className="spa-card">
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-6">
+              <Search className="h-8 w-8 text-accent" />
+            </div>
+            <p className="text-xl font-semibold font-headline mb-2">
               {searchTerm ? 'Không tìm thấy khách hàng' : 'Không có khách hàng nào'}
             </p>
-            <p>
+            <p className="text-muted-foreground mb-6 max-w-md">
               {searchTerm
                 ? `Không có khách hàng nào khớp với tìm kiếm "${searchTerm}".`
+                : showAllCustomers
+                ? 'Chưa có khách hàng nào trong hệ thống.'
                 : 'Không có khách hàng nào có lịch hẹn hôm nay.'
               }
             </p>
             {searchTerm && (
               <Button
                 variant="outline"
-                className="mt-4"
+                className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50"
                 onClick={() => setSearchTerm('')}
               >
                 Xóa tìm kiếm
@@ -333,49 +371,68 @@ export default function CustomersPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCustomers.map((customer, index) => (
             <LazyCard key={customer.id} delay={index * 50}>
-              <Card className="flex flex-col">
-                <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-                  <Avatar className="h-12 w-12">
+              <Card className="spa-card flex flex-col group hover:spa-shadow-elegant transition-all duration-300">
+                <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                  <Avatar className="h-14 w-14 ring-2 ring-accent/20 group-hover:ring-accent/40 transition-all duration-300">
                     <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint="person portrait"/>
-                    <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="bg-accent/10 text-accent font-semibold text-lg">
+                      {customer.name.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
-                  <div className="grid gap-1">
-                    <CardTitle className="font-headline">{customer.name}</CardTitle>
-                    <CardDescription>
-                      {calculateAge(customer.birthYear)} tuổi, {translateGender(customer.gender)}
+                  <div className="grid gap-1 flex-1">
+                    <CardTitle className="font-headline text-lg group-hover:text-primary transition-colors duration-300">
+                      {customer.name}
+                    </CardTitle>
+                    <CardDescription className="text-sm">
+                      {calculateAge(customer.birthYear)} tuổi • {translateGender(customer.gender)}
                     </CardDescription>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-grow space-y-4">
-                    <div className="text-sm text-muted-foreground space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 flex-shrink-0" />
-                            <span>{customer.phone}</span>
+                <CardContent className="flex-grow space-y-3 pb-4">
+                    <div className="text-sm space-y-3">
+                        <div className="flex items-center gap-3 text-muted-foreground">
+                            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+                              <Phone className="h-4 w-4 text-accent" />
+                            </div>
+                            <span className="font-medium">{customer.phone}</span>
                         </div>
-                        <div className="flex items-start gap-2">
-                            <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                            <span>{customer.address}</span>
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <MapPin className="h-4 w-4 text-accent" />
+                            </div>
+                            <span className="font-medium leading-relaxed">{customer.address}</span>
                         </div>
-                        <div className="flex items-center gap-2 pt-2">
-                            <CreditCard className="h-4 w-4 flex-shrink-0 text-green-600" />
-                            <span className="text-sm font-medium text-green-600">
-                              Tổng chi tiêu: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(customer.tongChiTieu)}
-                            </span>
+                        <div className="flex items-center gap-3 pt-2">
+                            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                              <CreditCard className="h-4 w-4 text-accent" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs text-muted-foreground">Tổng chi tiêu</span>
+                              <span className="font-semibold text-accent">
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(customer.tongChiTieu)}
+                              </span>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between items-center">
-                    <p className="text-xs text-muted-foreground">Lần đến cuối: {formatDate(customer.lastVisit)}</p>
+                <CardFooter className="flex justify-between items-center pt-4 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground">
+                      Lần đến cuối: <span className="font-medium">{formatDate(customer.lastVisit)}</span>
+                    </p>
                     <div className="flex items-center gap-2">
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 hover:border-destructive/40"
+                                >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
+                            <AlertDialogContent className="spa-glass">
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Xác nhận xóa khách hàng</AlertDialogTitle>
+                                    <AlertDialogTitle className="font-headline">Xác nhận xóa khách hàng</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Bạn có chắc chắn muốn xóa khách hàng <strong>{customer.name}</strong>?
                                         Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.
@@ -392,7 +449,12 @@ export default function CustomersPage() {
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-                        <Button variant="outline" size="sm" onClick={() => setSelectedCustomer(customer)}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setSelectedCustomer(customer)}
+                          className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50"
+                        >
                             Xem chi tiết
                         </Button>
                     </div>
@@ -404,7 +466,7 @@ export default function CustomersPage() {
       )}
 
       <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl spa-glass">
           {selectedCustomer && (
             <CustomerDetail
               customer={selectedCustomer}

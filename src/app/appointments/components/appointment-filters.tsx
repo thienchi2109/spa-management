@@ -189,7 +189,7 @@ export function AppointmentFiltersComponent({
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">
-              Nhân viên y tế
+              Kỹ thuật viên
             </label>
             <Select
               value={filters.staffMember}
@@ -257,7 +257,7 @@ export function AppointmentFiltersComponent({
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">
-              Nhân viên y tế
+              Kỹ thuật viên
             </label>
             <Select
               value={filters.staffMember}

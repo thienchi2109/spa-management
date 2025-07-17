@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon, Search, UserPlus, Users, Loader2 } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, Search, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,16 +13,16 @@ import {
 } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { formatDate, calculateAge, generateCustomerId } from '@/lib/utils';
+import { formatDate, generatePatientId } from '@/lib/utils';
 import { DailyTimeline } from './components/daily-timeline';
 import { AppointmentForm } from './components/appointment-form';
 import { format } from 'date-fns';
-import type { Appointment, Customer, Invoice, InvoiceItem, Staff } from '@/lib/types';
+import type { Appointment, Patient, Customer, Invoice, InvoiceItem, Staff, MedicalRecord } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppointmentsTable } from './components/appointments-table';
-import { FindPatientForm } from './components/find-patient-form';
-import { EnhancedPOSForm } from '@/app/invoices/components/enhanced-pos-form';
+
+import { POSInvoiceForm } from '@/app/invoices/components/pos-invoice-form';
 import { AppointmentFiltersComponent, type AppointmentFilters } from './components/appointment-filters';
 import {
   Card,
@@ -32,34 +32,45 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  getCollectionData,
   addAppointment,
   updateAppointment,
   deleteAppointment,
-  addCustomer,
-  updateCustomer,
+  addPatient,
+  updatePatient,
   addInvoice,
   updateInvoice,
-
+  addMedicalRecord
 } from '@/lib/sheets-utils';
 import { useToast } from '@/hooks/use-toast';
+import { useData } from '@/contexts/data-context';
 
 
 export default function AppointmentsPage() {
   const [date, setDate] = useState<Date | undefined>();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
-
-  const [loading, setLoading] = useState(true);
+  const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
-  const [walkInQueue, setWalkInQueue] = useState<Customer[]>([]);
-  const [isWalkInDialogOpen, setIsWalkInDialogOpen] = useState(false);
+  // Use cached data from context
+  const {
+    appointments,
+    customers: patients,
+    invoices,
+    staff,
+    isLoadingAppointments,
+    isLoadingCustomers,
+    isLoadingInvoices,
+    isLoadingStaff,
+    addAppointmentOptimistic,
+    updateAppointmentOptimistic,
+    deleteAppointmentOptimistic,
+    addCustomerOptimistic,
+    updateCustomerOptimistic
+  } = useData();
+
+
 
   const [invoiceCandidate, setInvoiceCandidate] = useState<Appointment | null>(null);
 
@@ -73,33 +84,7 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     setDate(new Date());
-
-    async function loadData() {
-      try {
-        const [customersData, appointmentsData, invoicesData, staffData] = await Promise.all([
-          getCollectionData<Customer>('customers'),
-          getCollectionData<Appointment>('appointments'),
-          getCollectionData<Invoice>('invoices'),
-          getCollectionData<Staff>('staff'),
-        ]);
-        setCustomers(customersData);
-        setAppointments(appointmentsData);
-        setInvoices(invoicesData);
-        setStaff(staffData);
-      } catch (error) {
-        console.error("Failed to load data from Google Sheets", error);
-        toast({
-          variant: 'destructive',
-          title: 'Lỗi tải dữ liệu',
-          description: 'Không thể tải dữ liệu từ Google Sheets.'
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-
-  }, [toast]);
+  }, []);
 
   const selectedDateString = date ? format(date, 'yyyy-MM-dd') : '';
 
@@ -156,8 +141,12 @@ export default function AppointmentsPage() {
         ...newAppointmentData,
         status: 'Scheduled' as Appointment['status'],
       };
-      const newAppointment = await addAppointment(appointmentToAdd);
-      setAppointments(prev => [...prev, newAppointment]);
+      
+      // Use optimistic update from cached data context
+      await addAppointmentOptimistic(appointmentToAdd, async () => {
+        return await addAppointment(appointmentToAdd);
+      });
+      
       toast({
         title: 'Lưu thành công',
         description: 'Lịch hẹn đã được tạo.',
@@ -173,36 +162,32 @@ export default function AppointmentsPage() {
   };
 
   const handleUpdateAppointmentStatus = async (appointmentId: string, newStatus: Appointment['status']) => {
-    let appointmentForInvoice: Appointment | undefined;
-    const updatedAppointments = appointments.map(app => {
-      if (app.id === appointmentId) {
-        appointmentForInvoice = { ...app, status: newStatus };
-        return appointmentForInvoice;
-      }
-      return app;
-    });
-
     try {
-      // Update appointment in Google Sheets
-      if (appointmentForInvoice) {
-        await updateAppointment(appointmentForInvoice);
-      }
-      setAppointments(updatedAppointments);
+      const appointmentToUpdate = appointments.find(app => app.id === appointmentId);
+      if (!appointmentToUpdate) return;
+
+      const updatedAppointment = { ...appointmentToUpdate, status: newStatus };
+
+      // Use optimistic update from cached data context
+      await updateAppointmentOptimistic(updatedAppointment, async () => {
+        return await updateAppointment(updatedAppointment);
+      });
 
       toast({
         title: 'Cập nhật thành công',
         description: 'Trạng thái lịch hẹn đã được thay đổi.',
       });
 
-      // Update customer's last visit date when appointment is completed
-      if (newStatus === 'Completed' && appointmentForInvoice) {
-        const customerToUpdate = customers.find(c => c.name === appointmentForInvoice!.patientName);
-        if (customerToUpdate) {
-          const updatedCustomer = { ...customerToUpdate, lastVisit: appointmentForInvoice.date };
-          await updateCustomer(updatedCustomer);
-
-          const updatedCustomers = customers.map(c => c.id === customerToUpdate.id ? updatedCustomer : c);
-          setCustomers(updatedCustomers);
+      // Update patient's last visit date when appointment is completed
+      if (newStatus === 'Completed') {
+        const patientToUpdate = patients.find(p => p.name === appointmentToUpdate.patientName);
+        if (patientToUpdate) {
+          const updatedPatient = { ...patientToUpdate, lastVisit: appointmentToUpdate.date };
+          
+          // Use optimistic update for patient as well
+          await updateCustomerOptimistic(updatedPatient, async () => {
+            return await updatePatient(updatedPatient);
+          });
         }
       }
     } catch (error) {
@@ -224,10 +209,6 @@ export default function AppointmentsPage() {
         await updateInvoice(updatedInvoice);
       }
 
-      const updatedInvoices = invoices.map(inv =>
-        inv.id === invoiceId ? { ...inv, status: newStatus } : inv
-      );
-      setInvoices(updatedInvoices);
       toast({
         title: 'Thanh toán thành công',
         description: 'Trạng thái hóa đơn đã được cập nhật.',
@@ -242,29 +223,31 @@ export default function AppointmentsPage() {
     }
   };
 
-  const handleSaveCustomer = async (customerData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>): Promise<Customer> => {
+  const handleSavePatient = async (patientData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>): Promise<Customer> => {
     try {
-      // Generate custom customer ID
-      const customerId = generateCustomerId(customers);
+      // Generate custom patient ID
+      const patientId = generatePatientId(patients);
 
-      const customerToAdd = {
-        ...customerData,
-        id: customerId,
+      const patientToAdd = {
+        ...patientData,
+        id: patientId,
         lastVisit: new Date().toISOString().split('T')[0],
         avatarUrl: 'https://placehold.co/100x100.png',
         tongChiTieu: 0,
       };
 
-      // Use Google Sheets instead of Firestore
-      const newCustomer = await addCustomer(customerToAdd);
-      setCustomers(prev => [...prev, newCustomer]);
+      // Use optimistic update from cached data context
+      const newPatient = await addCustomerOptimistic(patientToAdd, async () => {
+        return await addPatient(patientToAdd);
+      });
+      
       toast({
         title: 'Thêm thành công',
-        description: `Hồ sơ khách hàng ${newCustomer.name} đã được tạo với mã ${customerId}.`,
+        description: `Hồ sơ khách hàng ${newPatient.name} đã được tạo với mã ${patientId}.`,
       });
-      return newCustomer;
+      return newPatient;
     } catch (error) {
-      console.error("Error adding customer: ", error);
+      console.error("Error adding patient: ", error);
       toast({
         variant: 'destructive',
         title: 'Thêm thất bại',
@@ -283,7 +266,6 @@ export default function AppointmentsPage() {
     totalAmount: number;
     discount: number;
     notes?: string;
-    paymentMethod: string;
   }, status: 'Paid' | 'Pending') => {
     if (!invoiceCandidate) return;
 
@@ -300,47 +282,70 @@ export default function AppointmentsPage() {
         items: invoiceItems,
         amount: invoiceData.totalAmount,
         status: status,
+        discount: invoiceData.discount,
+        notes: invoiceData.notes,
       };
 
-      // Use Google Sheets instead of Firestore
+      // Use direct API call for invoices (no optimistic update available yet)
       const newInvoice = await addInvoice(invoiceToAdd);
-      setInvoices(prev => [...prev, newInvoice]);
       setInvoiceCandidate(null);
+      
+      // Update customer spending if payment is completed
+      if (status === 'Paid') {
+        const customerToUpdate = patients.find(p => p.name === invoiceCandidate.patientName);
+        if (customerToUpdate) {
+          const updatedCustomer = { 
+            ...customerToUpdate, 
+            tongChiTieu: customerToUpdate.tongChiTieu + invoiceData.totalAmount 
+          };
+          await updateCustomerOptimistic(updatedCustomer, async () => {
+            return await updatePatient(updatedCustomer);
+          });
+        }
+      }
+      
       toast({
         title: 'Tạo hóa đơn thành công',
-        description: `Hóa đơn cho ${newInvoice.patientName} đã được tạo với tổng tiền ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(invoiceData.totalAmount)}.`,
+        description: `Hóa đơn POS cho ${newInvoice.patientName} đã được tạo với ${invoiceData.items.length} dịch vụ.`,
       });
-
-      // Update customer's total spending
-      const customerToUpdate = customers.find(c => c.name === invoiceCandidate.patientName);
-      if (customerToUpdate && status === 'Paid') {
-        const updatedCustomer = {
-          ...customerToUpdate,
-          tongChiTieu: customerToUpdate.tongChiTieu + invoiceData.totalAmount
-        };
-        await updateCustomer(updatedCustomer);
-        setCustomers(prev => prev.map(c => c.id === customerToUpdate.id ? updatedCustomer : c));
-      }
     } catch (error) {
-      console.error("Error adding invoice: ", error);
+      console.error("Error adding POS invoice: ", error);
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: 'Không thể tạo hóa đơn mới.',
+        description: 'Không thể tạo hóa đơn POS mới.',
+      });
+    }
+  };
+
+  const handleSaveMedicalRecord = async (recordData: Omit<MedicalRecord, 'id'>) => {
+    try {
+      // Find patient ID based on patient name
+      const patient = patients.find(p => p.name === recordData.patientName);
+      const medicalRecordToAdd = {
+        ...recordData,
+        patientId: patient?.id || '',
+      };
+
+      // Use Google Sheets instead of Firestore
+      const newMedicalRecord = await addMedicalRecord(medicalRecordToAdd);
+      setMedicalRecords(prev => [...prev, newMedicalRecord]);
+
+      toast({
+        title: 'Lưu thành công',
+        description: 'Kết quả khám bệnh đã được ghi nhận.',
+      });
+    } catch (error) {
+      console.error("Error saving medical record: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Không thể lưu kết quả khám bệnh.',
       });
     }
   };
 
 
-
-  const handleAddToWalkInQueue = (customer: Customer) => {
-    setWalkInQueue(prev => {
-      if (prev.some(c => c.id === customer.id)) {
-        return prev;
-      }
-      return [...prev, customer];
-    });
-  };
 
   const handleEditAppointment = (appointment: Appointment) => {
     // For now, we'll show a toast indicating the feature is coming soon
@@ -353,12 +358,10 @@ export default function AppointmentsPage() {
 
   const handleDeleteAppointment = async (appointmentId: string) => {
     try {
-      // Delete from Google Sheets
-      await deleteAppointment(appointmentId);
-
-      // Update local state
-      const updatedAppointments = appointments.filter(app => app.id !== appointmentId);
-      setAppointments(updatedAppointments);
+      // Use optimistic update from cached data context
+      await deleteAppointmentOptimistic(appointmentId, async () => {
+        return await deleteAppointment(appointmentId);
+      });
 
       toast({
         title: 'Xóa thành công',
@@ -374,21 +377,25 @@ export default function AppointmentsPage() {
     }
   };
 
-  if (loading) {
+  // Show loading state while any critical data is loading
+  const isLoading = isLoadingAppointments || isLoadingCustomers || isLoadingStaff;
+  
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Đang tải dữ liệu...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <Tabs defaultValue="timeline" className="space-y-4 flex flex-col h-full">
         <div className="flex items-center justify-between flex-wrap gap-y-4">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-headline font-bold">Lịch hẹn</h1>
-            <TabsList>
+            <h1 className="text-3xl font-headline font-bold spa-text-gradient">Lịch hẹn</h1>
+            <TabsList className="spa-glass">
               <TabsTrigger value="timeline">Dòng thời gian</TabsTrigger>
               <TabsTrigger value="table">Bảng</TabsTrigger>
             </TabsList>
@@ -425,14 +432,14 @@ export default function AppointmentsPage() {
             </Popover>
             <Dialog open={isAppointmentDialogOpen} onOpenChange={setIsAppointmentDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="spa-button-accent">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Đặt lịch hẹn
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="spa-glass">
                 <DialogHeader>
-                  <DialogTitle>Lên lịch hẹn mới</DialogTitle>
+                  <DialogTitle className="text-xl font-headline">Lên lịch hẹn mới</DialogTitle>
                   <DialogDescription>
                     Điền thông tin chi tiết để lên lịch hẹn mới.
                   </DialogDescription>
@@ -441,17 +448,18 @@ export default function AppointmentsPage() {
                   selectedDate={date}
                   staff={staff}
                   appointments={appointments}
-                  patients={customers}
+                  patients={patients}
                   onSave={handleSaveAppointment}
-                  onSavePatient={handleSaveCustomer}
+                  onSavePatient={handleSavePatient}
                   onClose={() => setIsAppointmentDialogOpen(false)}
+                  editingAppointment={null}
                 />
               </DialogContent>
             </Dialog>
           </div>
         </div>
         <TabsContent value="timeline" className="flex-1 overflow-auto">
-          <DailyTimeline appointments={dailyAppointments} staff={staffForDay} onUpdateStatus={handleUpdateAppointmentStatus} onUpdateInvoiceStatus={handleUpdateInvoiceStatus} invoices={invoices} onCreateInvoice={setInvoiceCandidate} />
+          <DailyTimeline appointments={dailyAppointments} staff={staffForDay} onUpdateStatus={handleUpdateAppointmentStatus} onUpdateInvoiceStatus={handleUpdateInvoiceStatus} invoices={invoices} onCreateInvoice={setInvoiceCandidate} onSaveMedicalRecord={handleSaveMedicalRecord} />
         </TabsContent>
         <TabsContent value="table" className="flex-1 overflow-auto space-y-4">
           <AppointmentFiltersComponent
@@ -466,6 +474,7 @@ export default function AppointmentsPage() {
             onUpdateInvoiceStatus={handleUpdateInvoiceStatus}
             invoices={invoices}
             onCreateInvoice={setInvoiceCandidate}
+            onSaveMedicalRecord={handleSaveMedicalRecord}
             onEditAppointment={handleEditAppointment}
             onDeleteAppointment={handleDeleteAppointment}
             showResultsCount={true}
@@ -475,12 +484,12 @@ export default function AppointmentsPage() {
 
       {invoiceCandidate && (
         <Dialog open={!!invoiceCandidate} onOpenChange={(open) => !open && setInvoiceCandidate(null)}>
-          <DialogContent className="sm:max-w-6xl">
+          <DialogContent className="sm:max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Tạo hóa đơn dịch vụ</DialogTitle>
-              <DialogDescription>Chọn các dịch vụ và tạo hóa đơn cho khách hàng.</DialogDescription>
+              <DialogTitle>Tạo hóa đơn</DialogTitle>
+              <DialogDescription>Tạo hóa đơn cho cuộc hẹn đã hoàn thành.</DialogDescription>
             </DialogHeader>
-            <EnhancedPOSForm
+            <POSInvoiceForm
               patientName={invoiceCandidate.patientName}
               date={invoiceCandidate.date}
               onSave={handleSaveInvoice}
@@ -490,65 +499,7 @@ export default function AppointmentsPage() {
         </Dialog>
       )}
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="font-headline text-xl">Hàng chờ dịch vụ</CardTitle>
-            <CardDescription>Quản lý khách hàng đến sử dụng dịch vụ không có lịch hẹn.</CardDescription>
-          </div>
-          <Dialog open={isWalkInDialogOpen} onOpenChange={setIsWalkInDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Thêm vào hàng chờ
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Thêm khách hàng vào hàng chờ</DialogTitle>
-                <DialogDescription>
-                  Tìm khách hàng đã có hoặc tạo hồ sơ mới để thêm vào hàng chờ.
-                </DialogDescription>
-              </DialogHeader>
-              <FindPatientForm
-                patients={customers}
-                walkInQueue={walkInQueue}
-                onAddToQueue={handleAddToWalkInQueue}
-                onSaveNewPatient={handleSaveCustomer}
-                onClose={() => setIsWalkInDialogOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          {walkInQueue.length === 0 ? (
-            <div className="text-center text-muted-foreground py-10 border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
-              <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="font-semibold">Hàng chờ trống</p>
-              <p className="text-sm">Hiện không có khách hàng nào đang chờ dịch vụ.</p>
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {walkInQueue.map((patient, index) => (
-                <li key={patient.id} className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold">{patient.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {calculateAge(patient.birthYear)} tuổi, {patient.phone}
-                      </p>
-                    </div>
-                  </div>
-                  <Button size="sm">Bắt đầu dịch vụ</Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+
     </div>
   );
 }

@@ -33,30 +33,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadStaffData();
   }, []);
 
-  // Check auth whenever allStaff changes (after Firebase load)
+  // Check auth whenever allStaff changes (after data load)
   useEffect(() => {
-    if (allStaff.length === 0) return; // Wait for staff data to load
-
     const checkAuth = () => {
       const isLoggedIn = localStorage.getItem('isLoggedIn');
       const staffId = localStorage.getItem('staffId');
+      const sessionExpiration = localStorage.getItem('sessionExpiration');
 
-      if (isLoggedIn === 'true' && staffId) {
+      // Check if session has expired
+      if (sessionExpiration) {
+        const expirationTime = parseInt(sessionExpiration);
+        const currentTime = new Date().getTime();
+        
+        if (currentTime > expirationTime) {
+          // Session expired, clear all data
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('staffId');
+          localStorage.removeItem('sessionExpiration');
+          setCurrentUser(null);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (isLoggedIn === 'true' && staffId && allStaff.length > 0) {
         const user = allStaff.find(staff => staff.id === staffId);
         if (user) {
           setCurrentUser(user);
         } else {
+          // Invalid user ID, clear localStorage
           localStorage.removeItem('isLoggedIn');
           localStorage.removeItem('staffId');
+          localStorage.removeItem('sessionExpiration');
           setCurrentUser(null);
         }
       } else {
+        // No valid session or staff data not loaded yet
         setCurrentUser(null);
       }
-      setIsLoading(false);
+      
+      // Only set loading to false when we have staff data OR when there's no login session
+      if (allStaff.length > 0 || (isLoggedIn !== 'true' || !staffId)) {
+        setIsLoading(false);
+      }
     };
 
     checkAuth();
+
+    // Set up periodic session check (every 5 minutes)
+    const sessionCheckInterval = setInterval(checkAuth, 5 * 60 * 1000);
 
     // Listen for storage changes (when user logs in from another tab or after login)
     const handleStorageChange = () => {
@@ -67,20 +92,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      clearInterval(sessionCheckInterval);
     };
   }, [allStaff]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Authentication against loaded staff data (includes Firebase data)
+    // Authentication against loaded staff data
     const user = allStaff.find(staff =>
       staff.email === email && staff.password === password
     );
 
     if (user) {
       setCurrentUser(user);
-      // Use existing localStorage structure
+      // Set session with expiration (24 hours)
+      const expirationTime = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 hours
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('staffId', user.id);
+      localStorage.setItem('sessionExpiration', expirationTime.toString());
       return true;
     }
     return false;
@@ -90,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('staffId');
+    localStorage.removeItem('sessionExpiration');
   };
 
   const refreshAuth = () => {

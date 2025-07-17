@@ -55,26 +55,26 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col">
       {/* Header Section */}
-      <header className="bg-primary text-primary-foreground py-8 px-4 text-center shadow-md">
-        <div className="inline-block bg-white p-2 rounded-full mb-3">
+      <header className="bg-primary text-primary-foreground py-12 px-4 text-center spa-shadow-elegant">
+        <div className="inline-block bg-accent/10 backdrop-blur-sm p-3 rounded-full mb-4 ring-2 ring-accent/20">
           <img
             src="https://i.postimg.cc/6ptfnpqy/clinic-8217926.png"
-            alt="Clinic Logo"
-            className="w-12 h-12 object-contain"
+            alt="Spa Logo"
+            className="w-16 h-16 object-contain"
           />
         </div>
-        <h1 className="text-2xl font-bold tracking-wider">
-          QUẢN LÝ SPA
+        <h1 className="text-3xl font-bold font-headline tracking-wider mb-2">
+          HỆ THỐNG QUẢN LÝ LTSPA
         </h1>
-        <p className="text-sm text-primary-foreground/80 mt-1">
-          Đăng nhập vào hệ thống
+        <p className="text-primary-foreground/90 font-medium">
+          Đăng nhập vào hệ thống quản lý
         </p>
       </header>
 
       {/* Form Section */}
       <main className="flex-grow flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm -mt-24 shadow-xl">
-            <CardContent className="p-6 pt-8 space-y-4">
+        <Card className="w-full max-w-md -mt-24 shadow-xl spa-glass">
+            <CardContent className="p-8 pt-10 space-y-6">
                 {/* Error Alert */}
                 {error && (
                     <Alert variant="destructive">
@@ -83,10 +83,12 @@ export default function LoginPage() {
                 )}
 
                 {/* Login Form */}
-                <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
+                <form onSubmit={handleLogin} className="space-y-6">
+                    <div className="space-y-3">
                         <label htmlFor="email" className="flex items-center text-sm font-medium text-foreground">
-                            <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mr-3">
+                                <User className="w-4 h-4 text-accent" />
+                            </div>
                             Tên đăng nhập
                         </label>
                         <Input
@@ -96,13 +98,15 @@ export default function LoginPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="h-11 text-base"
+                            className="h-14 text-base spa-input"
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <label htmlFor="password" className="flex items-center text-sm font-medium text-foreground">
-                            <Lock className="w-4 h-4 mr-2 text-muted-foreground" />
+                            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mr-3">
+                                <Lock className="w-4 h-4 text-accent" />
+                            </div>
                             Mật khẩu
                         </label>
                         <Input
@@ -112,40 +116,29 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="h-11 text-base"
+                            className="h-14 text-base spa-input"
                         />
                     </div>
 
                     <Button
-                    type="submit"
-                    className="w-full h-11 text-base font-semibold"
-                    disabled={isLoading}
+                        type="submit"
+                        className="w-full h-12 text-base font-semibold spa-button-accent mt-8"
+                        disabled={isLoading}
                     >
-                    {isLoading ? (
-                        <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Đang đăng nhập...</span>
-                        </div>
-                    ) : (
-                        'Đăng nhập'
-                    )}
+                        {isLoading ? (
+                            <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span>Đang đăng nhập...</span>
+                            </div>
+                        ) : (
+                            'Đăng nhập'
+                        )}
                     </Button>
                 </form>
-
-                {/* Demo Info */}
-                <div className="p-3 bg-muted/80 rounded-lg border border-border text-center mt-4">
-                    <p className="text-sm text-foreground font-medium mb-2">Thông tin demo:</p>
-                    <p className="text-xs text-muted-foreground mb-1">
-                    Email: <span className="font-mono bg-background px-1 rounded">minh.bs@clinic.com</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                    Mật khẩu: <span className="font-mono bg-background px-1 rounded">minh123</span>
-                    </p>
-                </div>
             </CardContent>
-            <CardFooter className="justify-center py-4">
-                <p className="text-xs text-muted-foreground">
-                    Phát triển bởi <span className="font-medium text-foreground">Nguyễn Thiện Chí</span>
+            <CardFooter className="justify-center py-6 border-t border-border/50">
+                <p className="text-sm text-muted-foreground font-medium">
+                    Hệ thống quản lý Spa chuyên nghiệp
                 </p>
             </CardFooter>
         </Card>

@@ -15,9 +15,9 @@ import React from 'react';
 // Simplified schema without citizenId, weight, and medicalHistory
 const simplifiedCustomerFormSchema = z.object({
   name: z.string().min(2, { message: 'Tên khách hàng phải có ít nhất 2 ký tự.' }),
-  gender: z.enum(['Nam', 'Nữ', 'Male', 'Female', 'Other'], { required_error: 'Vui lòng chọn giới tính.' }),
-  birthYear: z.coerce.number().min(1900, 'Năm sinh không hợp lệ.').max(new Date().getFullYear(), 'Năm sinh không hợp lệ.'),
-  address: z.string().min(5, { message: 'Địa chỉ phải có ít nhất 5 ký tự.' }),
+  gender: z.enum(['Nam', 'Nữ', 'Khác'], { required_error: 'Vui lòng chọn giới tính.' }),
+  birthYear: z.union([z.coerce.number().min(1900).max(new Date().getFullYear()), z.literal("")]).optional(),
+  address: z.string().optional(),
   phone: z.string().regex(/^\d{10}$/, { message: 'Số điện thoại phải có 10 chữ số.' }),
 });
 
@@ -91,9 +91,7 @@ export function SimplifiedCustomerForm({ initialData, onSave, onClose }: Simplif
                                 <SelectContent>
                                     <SelectItem value="Nam">Nam</SelectItem>
                                     <SelectItem value="Nữ">Nữ</SelectItem>
-                                    <SelectItem value="Male">Nam</SelectItem>
-                                    <SelectItem value="Female">Nữ</SelectItem>
-                                    <SelectItem value="Other">Khác</SelectItem>
+                                    <SelectItem value="Khác">Khác</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />

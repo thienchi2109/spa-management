@@ -46,13 +46,11 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  experimental: {
-    serverComponentsExternalPackages: [
-      'google-auth-library',
-      'googleapis',
-      '@opentelemetry/sdk-node'
-    ]
-  }
+  serverExternalPackages: [
+    'google-auth-library',
+    'googleapis',
+    '@opentelemetry/sdk-node'
+  ]
 };
 
 export default nextConfig;

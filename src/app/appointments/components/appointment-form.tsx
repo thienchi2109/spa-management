@@ -48,12 +48,13 @@ interface AppointmentFormProps {
     staff: Staff[];
     appointments: Appointment[];
     patients: Customer[];
-    onSave: (appointment: Omit<Appointment, 'id' | 'status'>) => Promise<void>;
+    onSave: (appointment: Omit<Appointment, 'id'>) => Promise<void>;
     onSavePatient: (patientData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) => Promise<Customer>;
     onClose: () => void;
+    editingAppointment?: Appointment | null;
 }
 
-export function AppointmentForm({ selectedDate, staff, appointments, patients, onSave, onSavePatient, onClose }: AppointmentFormProps) {
+export function AppointmentForm({ selectedDate, staff, appointments, patients, onSave, onSavePatient, onClose, editingAppointment }: AppointmentFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
@@ -109,10 +110,29 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
 
   // Auto-fill scheduler name when currentUser changes
   useEffect(() => {
-    if (currentUser?.name) {
-      form.setValue('schedulerName', currentUser.name);
+    if (editingAppointment) {
+      form.reset({
+        patientName: editingAppointment.patientName,
+        doctorName: editingAppointment.doctorName,
+        schedulerName: editingAppointment.schedulerName,
+        date: new Date(editingAppointment.date),
+        startTime: editingAppointment.startTime,
+        endTime: editingAppointment.endTime,
+      });
+      setPatientSearch(editingAppointment.patientName);
+    } else {
+      // Reset form for new appointment
+      form.reset({
+        patientName: '',
+        doctorName: '',
+        schedulerName: currentUser?.name || '',
+        date: selectedDate,
+        startTime: '',
+        endTime: '',
+      });
+      setPatientSearch('');
     }
-  }, [currentUser, form]);
+  }, [editingAppointment, selectedDate, currentUser, form]);
 
   async function handleSaveNewCustomer(customerData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) {
     const newCustomer = await onSavePatient(customerData);
@@ -123,15 +143,16 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
 
   async function onSubmit(data: AppointmentFormValues) {
     setIsSaving(true);
-    const newAppointment = {
+    const appointmentData = {
         patientName: data.patientName,
         doctorName: data.doctorName,
         schedulerName: data.schedulerName,
         date: format(data.date, 'yyyy-MM-dd'),
         startTime: data.startTime,
         endTime: data.endTime,
+        status: editingAppointment ? editingAppointment.status : 'Scheduled',
     };
-    await onSave(newAppointment);
+    await onSave(appointmentData);
     setIsSaving(false);
     onClose();
   }
@@ -232,7 +253,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Kỹ thuật viên</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Chọn kỹ thuật viên" />
@@ -342,7 +363,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
             </div>
             <Button type="submit" className="w-full" disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSaving ? 'Đang lưu...' : 'Lưu lịch hẹn'}
+              {isSaving ? 'Đang lưu...' : (editingAppointment ? 'Lưu thay đổi' : 'Lưu lịch hẹn')}
             </Button>
           </form>
         </Form>

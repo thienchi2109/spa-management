@@ -58,7 +58,8 @@ export function DailyTimeline({
   onUpdateStatus,
   onUpdateInvoiceStatus,
   invoices,
-  onCreateInvoice
+  onCreateInvoice,
+  onEditAppointment
 }: {
   appointments: Appointment[];
   staff: Staff[];
@@ -66,6 +67,7 @@ export function DailyTimeline({
   onUpdateInvoiceStatus: (invoiceId: string, newStatus: Invoice['status']) => void;
   invoices: Invoice[];
   onCreateInvoice: (appointment: Appointment) => void;
+  onEditAppointment: (appointment: Appointment) => void;
 }) {
   const START_HOUR = 7;
   const END_HOUR = 20;
@@ -175,6 +177,7 @@ export function DailyTimeline({
                                         onUpdateStatus={onUpdateStatus}
                                         onUpdateInvoiceStatus={onUpdateInvoiceStatus}
                                         onCreateInvoice={onCreateInvoice}
+                                        onEditAppointment={onEditAppointment}
                                     />
                                 </Dialog>
                             )

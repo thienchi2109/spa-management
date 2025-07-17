@@ -158,8 +158,8 @@ export function AppointmentsTable({ appointments, staff, invoices, onUpdateStatu
           <TableHeader>
             <TableRow>
               <TableHead className="w-[110px] sm:w-[100px] font-semibold">Thời gian</TableHead>
-              <TableHead className="w-[160px] min-w-[140px] sm:min-w-[120px] font-semibold">Bệnh nhân</TableHead>
-              <TableHead className="hidden md:table-cell w-[140px] font-semibold">Bác sĩ/Điều dưỡng</TableHead>
+              <TableHead className="w-[160px] min-w-[140px] sm:min-w-[120px] font-semibold">Khách hàng</TableHead>
+              <TableHead className="hidden md:table-cell w-[140px] font-semibold">Kỹ thuật viên</TableHead>
               <TableHead className="w-[120px] sm:w-[100px] font-semibold">Trạng thái</TableHead>
               <TableHead className="hidden sm:table-cell w-[120px] font-semibold">Phí dịch vụ</TableHead>
               <TableHead className="w-[120px] sm:w-[100px] font-semibold">Thanh toán</TableHead>
@@ -218,7 +218,7 @@ export function AppointmentsTable({ appointments, staff, invoices, onUpdateStatu
                                 </DialogTrigger>
                                 <DropdownMenuItem
                                     onClick={() => handleEditClick(appointment)}
-                                    disabled={!onEditAppointment}
+                                    disabled={!onEditAppointment || appointment.status === 'Completed'}
                                 >
                                     <Pencil className="mr-2 h-4 w-4" />
                                     <span>Sửa</span>
