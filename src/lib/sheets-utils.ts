@@ -79,7 +79,7 @@ const PATIENT_HEADERS: (keyof Patient)[] = [
 ];
 
 const APPOINTMENT_HEADERS: (keyof Appointment)[] = [
-  'id', 'patientName', 'doctorName', 'schedulerName', 'date', 'startTime', 'endTime', 'status', 'notes'
+  'id', 'patientName', 'doctorName', 'schedulerName', 'date', 'startTime', 'endTime', 'status', 'services', 'notes'
 ];
 
 const MEDICATION_HEADERS: (keyof Medication)[] = [

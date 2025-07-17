@@ -117,36 +117,46 @@ export function useOptimisticUpdates<T extends { id: string }>(
     options: OptimisticUpdateOptions<T> = {}
   ): Promise<R> => {
     const { onSuccess, onError, invalidateCache = [] } = options;
-    
+
     setIsUpdating(true);
-    
+
     // Get current cache data for rollback
     const cacheKey = getCacheKey.collection(collectionName);
     const currentData = cacheManager.get<T[]>(cacheKey) || [];
-    
+
     try {
       // Apply optimistic add to cache
       const optimisticArray = [...currentData, newItem];
       cacheManager.set(cacheKey, optimisticArray);
       console.log(`➕ Optimistic add applied for ${collectionName}:${newItem.id}`);
-      
+
       // Perform actual add
       const result = await addFn();
-      
+
+      // If the result contains the actual item with real ID, update the cache
+      if (result && typeof result === 'object' && 'id' in result) {
+        const actualItem = result as T;
+        const updatedArray = optimisticArray.map(item =>
+          item.id === newItem.id ? actualItem : item
+        );
+        cacheManager.set(cacheKey, updatedArray);
+        console.log(`🔄 Updated optimistic item with real ID: ${newItem.id} -> ${actualItem.id}`);
+      }
+
       // Invalidate related caches
       invalidateCache.forEach(pattern => {
         cacheManager.invalidatePattern(pattern);
       });
-      
+
       onSuccess?.(newItem);
       console.log(`✅ Optimistic add confirmed for ${collectionName}:${newItem.id}`);
-      
+
       return result;
     } catch (error) {
       // Rollback optimistic add
       cacheManager.set(cacheKey, currentData);
       console.log(`❌ Optimistic add rolled back for ${collectionName}:${newItem.id}`);
-      
+
       onError?.(error as Error, newItem);
       throw error;
     } finally {

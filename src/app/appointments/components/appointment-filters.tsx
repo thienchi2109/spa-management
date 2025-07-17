@@ -100,16 +100,16 @@ export function AppointmentFiltersComponent({
     <Card className={`${className} ${hasActiveFilters ? 'ring-2 ring-primary/20 border-primary/30' : ''} transition-all duration-200`}>
       <CardContent className="p-4">
         {/* Header with Filter Icon and Clear Button */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="md:hidden flex items-center gap-2 hover:bg-accent rounded-md p-1 -ml-1"
+              className="md:hidden flex items-center gap-2 hover:bg-accent rounded-md p-2 -ml-2 transition-colors"
             >
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Bộ lọc</span>
+              <span className="font-medium mobile-text-sm">Bộ lọc</span>
               {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs h-5 min-w-[20px] flex items-center justify-center">
                   {activeFilterCount}
                 </Badge>
               )}
@@ -134,7 +134,7 @@ export function AppointmentFiltersComponent({
               variant="ghost"
               size="sm"
               onClick={handleClearAllFilters}
-              className="h-8 px-2 text-xs"
+              className="h-8 px-2 mobile-text-sm hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
               <RotateCcw className="h-3 w-3 mr-1" />
               <span className="hidden sm:inline">Xóa tất cả</span>
@@ -279,16 +279,19 @@ export function AppointmentFiltersComponent({
 
         {/* Active Filter Badges */}
         {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {filters.appointmentStatus !== 'all' && (
               <Badge
                 variant="outline"
-                className={`flex items-center gap-1 ${getStatusBadgeClasses(filters.appointmentStatus)}`}
+                className={`flex items-center gap-1 mobile-text-sm ${getStatusBadgeClasses(filters.appointmentStatus)}`}
               >
-                {appointmentStatusOptions.find(opt => opt.value === filters.appointmentStatus)?.label}
+                <span className="truncate max-w-[120px] sm:max-w-none">
+                  {appointmentStatusOptions.find(opt => opt.value === filters.appointmentStatus)?.label}
+                </span>
                 <button
                   onClick={() => removeFilter('appointmentStatus')}
-                  className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                  className="ml-1 hover:bg-black/10 rounded-full p-0.5 transition-colors"
+                  aria-label="Xóa bộ lọc trạng thái"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -298,12 +301,15 @@ export function AppointmentFiltersComponent({
             {filters.paymentStatus !== 'all' && (
               <Badge
                 variant="outline"
-                className={`flex items-center gap-1 ${getStatusBadgeClasses(filters.paymentStatus)}`}
+                className={`flex items-center gap-1 mobile-text-sm ${getStatusBadgeClasses(filters.paymentStatus)}`}
               >
-                {paymentStatusOptions.find(opt => opt.value === filters.paymentStatus)?.label}
+                <span className="truncate max-w-[120px] sm:max-w-none">
+                  {paymentStatusOptions.find(opt => opt.value === filters.paymentStatus)?.label}
+                </span>
                 <button
                   onClick={() => removeFilter('paymentStatus')}
-                  className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                  className="ml-1 hover:bg-black/10 rounded-full p-0.5 transition-colors"
+                  aria-label="Xóa bộ lọc thanh toán"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -311,11 +317,17 @@ export function AppointmentFiltersComponent({
             )}
 
             {filters.staffMember !== 'all' && (
-              <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-800 border-blue-200">
-                {staffOptions.find(opt => opt.value === filters.staffMember)?.label}
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-blue-50 text-blue-800 border-blue-200 mobile-text-sm"
+              >
+                <span className="truncate max-w-[120px] sm:max-w-none">
+                  {staffOptions.find(opt => opt.value === filters.staffMember)?.label}
+                </span>
                 <button
                   onClick={() => removeFilter('staffMember')}
-                  className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                  className="ml-1 hover:bg-black/10 rounded-full p-0.5 transition-colors"
+                  aria-label="Xóa bộ lọc nhân viên"
                 >
                   <X className="h-3 w-3" />
                 </button>

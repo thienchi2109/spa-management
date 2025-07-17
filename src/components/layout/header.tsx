@@ -49,9 +49,9 @@ export function Header() {
         <div className="flex items-center gap-4">
             {isDesktop && <SidebarTrigger />}
             <Link href="/" className="flex items-center gap-3">
-              <Image src="https://i.postimg.cc/RCs26NTd/pharmacy-12481797.png" alt="Clinic Management Logo" width={28} height={28} />
+              <Image src="https://i.postimg.cc/9XRr9dDp/beauty-salon-6328167.png" alt="Spa Management Logo" width={28} height={28} />
               <h1 className="whitespace-nowrap text-xl font-headline font-semibold">
-                Quản lý Spa
+                LTSpa
               </h1>
             </Link>
         </div>

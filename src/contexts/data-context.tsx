@@ -116,35 +116,59 @@ export function DataProvider({ children }: DataProviderProps) {
   // Optimistic update wrappers with cache invalidation
   const updateCustomerOptimistic = async (customer: Customer, updateFn: () => Promise<any>) => {
     return customerOptimistic.optimisticUpdate(updateFn, customer, {
-      invalidateCache: ['appointments:customer', 'invoices:customer']
+      invalidateCache: ['customers:all', 'appointments:customer', 'invoices:customer'],
+      onSuccess: () => {
+        setTimeout(() => refetchCustomers(), 100);
+      }
     });
   };
 
   const deleteCustomerOptimistic = async (customerId: string, deleteFn: () => Promise<any>) => {
     return customerOptimistic.optimisticDelete(deleteFn, customerId, {
-      invalidateCache: ['appointments:customer', 'invoices:customer']
+      invalidateCache: ['customers:all', 'appointments:customer', 'invoices:customer'],
+      onSuccess: () => {
+        setTimeout(() => refetchCustomers(), 100);
+      }
     });
   };
 
   const addCustomerOptimistic = async (customer: Customer, addFn: () => Promise<any>) => {
-    return customerOptimistic.optimisticAdd(addFn, customer);
+    return customerOptimistic.optimisticAdd(addFn, customer, {
+      invalidateCache: ['customers:all'],
+      onSuccess: () => {
+        setTimeout(() => refetchCustomers(), 100);
+      }
+    });
   };
 
   const updateAppointmentOptimistic = async (appointment: Appointment, updateFn: () => Promise<any>) => {
     return appointmentOptimistic.optimisticUpdate(updateFn, appointment, {
-      invalidateCache: ['appointments:today', 'appointments:customer']
+      invalidateCache: ['appointments:all', 'appointments:today', 'appointments:customer'],
+      onSuccess: () => {
+        setTimeout(() => refetchAppointments(), 100);
+      }
     });
   };
 
   const deleteAppointmentOptimistic = async (appointmentId: string, deleteFn: () => Promise<any>) => {
     return appointmentOptimistic.optimisticDelete(deleteFn, appointmentId, {
-      invalidateCache: ['appointments:today', 'appointments:customer']
+      invalidateCache: ['appointments:all', 'appointments:today', 'appointments:customer'],
+      onSuccess: () => {
+        setTimeout(() => refetchAppointments(), 100);
+      }
     });
   };
 
   const addAppointmentOptimistic = async (appointment: Appointment, addFn: () => Promise<any>) => {
     return appointmentOptimistic.optimisticAdd(addFn, appointment, {
-      invalidateCache: ['appointments:today', 'appointments:customer']
+      invalidateCache: ['appointments:all', 'appointments:today', 'appointments:customer'],
+      onSuccess: (data) => {
+        // Force refetch appointments to ensure UI is updated
+        setTimeout(() => {
+          console.log('🔄 Appointment added successfully, refetching appointments');
+          refetchAppointments();
+        }, 100);
+      }
     });
   };
 

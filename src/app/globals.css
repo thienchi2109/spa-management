@@ -138,6 +138,11 @@
     backdrop-filter: blur(20px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
+
+  .spa-dialog {
+    @apply bg-card border border-border/50;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
   
   .spa-shadow-elegant {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -159,6 +164,49 @@
   
   .animate-slide-up {
     animation: slideUp 0.4s ease-out;
+  }
+  
+  /* Mobile-first responsive dialog utilities */
+  .mobile-dialog {
+    @apply max-w-[95vw] max-h-[90vh] overflow-y-auto;
+  }
+  
+  .mobile-dialog-content {
+    @apply p-4 space-y-4;
+  }
+  
+  .mobile-form-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4;
+  }
+  
+  .mobile-button-group {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-4 w-full;
+  }
+  
+  .mobile-button {
+    @apply w-full sm:w-auto text-sm;
+  }
+  
+  /* Responsive spacing utilities */
+  .mobile-spacing {
+    @apply space-y-3 sm:space-y-4;
+  }
+  
+  .mobile-padding {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+  
+  /* Mobile-optimized text sizes */
+  .mobile-text-sm {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .mobile-text-base {
+    @apply text-sm sm:text-base;
+  }
+  
+  .mobile-text-lg {
+    @apply text-base sm:text-lg;
   }
   
   @keyframes fadeIn {

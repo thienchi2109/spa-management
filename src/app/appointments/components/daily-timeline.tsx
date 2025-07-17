@@ -151,6 +151,23 @@ export function DailyTimeline({
                                                 <p className={cn("flex-shrink-0 leading-tight text-[10px] opacity-90 mt-0.5", appointment.status === 'Cancelled' && "line-through")}>
                                                     {appointment.startTime} - {appointment.endTime}
                                                 </p>
+                                                {appointment.services && appointment.services.length > 0 && (
+                                                    <div className="mt-1 space-y-0.5">
+                                                        {appointment.services.slice(0, isShort ? 1 : 2).map((service, index) => (
+                                                            <div key={index} className="text-[9px] opacity-80 truncate">
+                                                                • {service.serviceName}
+                                                                {service.quantity > 1 && ` (x${service.quantity})`}
+                                                            </div>
+                                                        ))}
+                                                        {appointment.services.length > (isShort ? 1 : 2) && (
+                                                            <div className="text-[9px] opacity-60">
+                                                                +{appointment.services.length - (isShort ? 1 : 2)} dịch vụ khác
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {/* Debug: Log services data */}
+                                                {process.env.NODE_ENV === 'development' && appointment.services && console.log('🔍 Services for appointment', appointment.id, ':', appointment.services)}
                                             </div>
                                             {invoice && (
                                                 <div className="flex-shrink-0 mt-1">

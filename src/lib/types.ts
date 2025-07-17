@@ -25,6 +25,15 @@ export interface Customer {
   tongChiTieu: number; // Tổng chi tiêu của khách hàng
 }
 
+export interface AppointmentService {
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  discount?: number;
+}
+
 export interface Appointment {
   id: string;
   patientName: string;
@@ -34,6 +43,7 @@ export interface Appointment {
   startTime: string;
   endTime: string;
   status: 'scheduled' | 'completed' | 'cancelled' | 'Scheduled' | 'Completed' | 'Cancelled';
+  services?: AppointmentService[];
   notes?: string;
 }
 

@@ -19,15 +19,25 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarIcon, UserPlus, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, UserPlus, Loader2, Plus, X, ShoppingCart } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
-import type { Appointment, Staff, Customer } from '@/lib/types';
+import type { Appointment, Staff, Customer, SpaService, AppointmentService } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { SimplifiedCustomerForm } from './simplified-customer-form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
+import { useData } from '@/contexts/data-context';
+
+const appointmentServiceSchema = z.object({
+  serviceId: z.string(),
+  serviceName: z.string(),
+  quantity: z.number().min(1),
+  unitPrice: z.number().min(0),
+  totalPrice: z.number().min(0),
+  discount: z.number().min(0).optional(),
+});
 
 const baseAppointmentFormSchema = z.object({
   patientName: z.string({ required_error: 'Vui lòng chọn khách hàng.' }).min(1, 'Vui lòng chọn khách hàng.'),
@@ -36,6 +46,7 @@ const baseAppointmentFormSchema = z.object({
   date: z.date({ required_error: 'Vui lòng chọn ngày.' }),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Thời gian không hợp lệ (HH:mm).' }),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Thời gian không hợp lệ (HH:mm).' }),
+  services: z.array(appointmentServiceSchema).optional(),
 }).refine(data => data.endTime > data.startTime, {
     message: "Thời gian kết thúc phải sau thời gian bắt đầu.",
     path: ["endTime"],
@@ -48,19 +59,21 @@ interface AppointmentFormProps {
     staff: Staff[];
     appointments: Appointment[];
     patients: Customer[];
+    services: SpaService[];
     onSave: (appointment: Omit<Appointment, 'id'>) => Promise<void>;
     onSavePatient: (patientData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) => Promise<Customer>;
     onClose: () => void;
     editingAppointment?: Appointment | null;
 }
 
-export function AppointmentForm({ selectedDate, staff, appointments, patients, onSave, onSavePatient, onClose, editingAppointment }: AppointmentFormProps) {
+export function AppointmentForm({ selectedDate, staff, appointments, patients, services, onSave, onSavePatient, onClose, editingAppointment }: AppointmentFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
   const [isPatientListVisible, setIsPatientListVisible] = useState(false);
-  const [isPatientSaved, setIsPatientSaved] = useState(false);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [showServiceDialog, setShowServiceDialog] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<AppointmentService[]>([]);
   
   // Get current user from auth context
   const { currentUser } = useAuth();
@@ -101,10 +114,13 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
-      date: selectedDate,
+      patientName: '',
+      doctorName: '',
+      schedulerName: currentUser?.name || '', // Auto-fill with current user's name
+      date: selectedDate || new Date(),
       startTime: '',
       endTime: '',
-      schedulerName: currentUser?.name || '', // Auto-fill with current user's name
+      services: [],
     },
   });
 
@@ -112,57 +128,142 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
   useEffect(() => {
     if (editingAppointment) {
       form.reset({
-        patientName: editingAppointment.patientName,
-        doctorName: editingAppointment.doctorName,
-        schedulerName: editingAppointment.schedulerName,
+        patientName: editingAppointment.patientName || '',
+        doctorName: editingAppointment.doctorName || '',
+        schedulerName: editingAppointment.schedulerName || '',
         date: new Date(editingAppointment.date),
-        startTime: editingAppointment.startTime,
-        endTime: editingAppointment.endTime,
+        startTime: editingAppointment.startTime || '',
+        endTime: editingAppointment.endTime || '',
+        services: editingAppointment.services || [],
       });
-      setPatientSearch(editingAppointment.patientName);
+      setPatientSearch(editingAppointment.patientName || '');
+      setSelectedServices(editingAppointment.services || []);
     } else {
       // Reset form for new appointment
       form.reset({
         patientName: '',
         doctorName: '',
         schedulerName: currentUser?.name || '',
-        date: selectedDate,
+        date: selectedDate || new Date(),
         startTime: '',
         endTime: '',
+        services: [],
       });
       setPatientSearch('');
+      setSelectedServices([]);
     }
   }, [editingAppointment, selectedDate, currentUser, form]);
 
   async function handleSaveNewCustomer(customerData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>) {
-    const newCustomer = await onSavePatient(customerData);
-    form.setValue('patientName', newCustomer.name, { shouldValidate: true });
-    setPatientSearch(newCustomer.name);
-    setIsPatientSaved(true);
+    // Ensure required fields are not undefined
+    const customerWithDefaults = {
+      ...customerData,
+      address: customerData.address || '',
+      birthYear: customerData.birthYear || new Date().getFullYear() - 30 // Default age 30 if not provided
+    };
+    return await onSavePatient(customerWithDefaults);
   }
+
+  const handleAddService = (service: SpaService) => {
+    const existingIndex = selectedServices.findIndex(s => s.serviceId === service.id);
+
+    if (existingIndex >= 0) {
+      // Increase quantity if service already exists
+      const updatedServices = [...selectedServices];
+      updatedServices[existingIndex] = {
+        ...updatedServices[existingIndex],
+        quantity: updatedServices[existingIndex].quantity + 1,
+        totalPrice: (updatedServices[existingIndex].quantity + 1) * updatedServices[existingIndex].unitPrice,
+      };
+      setSelectedServices(updatedServices);
+    } else {
+      // Add new service
+      const effectivePrice = service.discountPrice && service.discountPrice < service.price
+        ? service.discountPrice
+        : service.price;
+
+      const newService: AppointmentService = {
+        serviceId: service.id,
+        serviceName: service.name,
+        quantity: 1,
+        unitPrice: effectivePrice,
+        totalPrice: effectivePrice,
+        discount: 0,
+      };
+
+      setSelectedServices([...selectedServices, newService]);
+    }
+  };
+
+  const handleRemoveService = (serviceId: string) => {
+    setSelectedServices(selectedServices.filter(s => s.serviceId !== serviceId));
+  };
+
+  const handleUpdateServiceQuantity = (serviceId: string, quantity: number) => {
+    if (quantity <= 0) {
+      handleRemoveService(serviceId);
+      return;
+    }
+
+    const updatedServices = selectedServices.map(service =>
+      service.serviceId === serviceId
+        ? { ...service, quantity, totalPrice: quantity * service.unitPrice }
+        : service
+    );
+    setSelectedServices(updatedServices);
+  };
+
+  const getTotalServiceAmount = () => {
+    return selectedServices.reduce((total, service) => total + service.totalPrice, 0);
+  };
 
   async function onSubmit(data: AppointmentFormValues) {
     setIsSaving(true);
-    const appointmentData = {
-        patientName: data.patientName,
-        doctorName: data.doctorName,
-        schedulerName: data.schedulerName,
-        date: format(data.date, 'yyyy-MM-dd'),
-        startTime: data.startTime,
-        endTime: data.endTime,
-        status: editingAppointment ? editingAppointment.status : 'Scheduled',
-    };
-    await onSave(appointmentData);
-    setIsSaving(false);
-    onClose();
+    try {
+      const appointmentData = {
+          patientName: data.patientName,
+          doctorName: data.doctorName,
+          schedulerName: data.schedulerName,
+          date: format(data.date, 'yyyy-MM-dd'),
+          startTime: data.startTime,
+          endTime: data.endTime,
+          status: editingAppointment ? editingAppointment.status : 'Scheduled',
+          services: selectedServices,
+      };
+
+      console.log('🔍 Appointment data being saved:', appointmentData);
+      console.log('🔍 Selected services:', selectedServices);
+
+      await onSave(appointmentData);
+
+      // Reset form after successful save (only for new appointments)
+      if (!editingAppointment) {
+        form.reset({
+          patientName: '',
+          doctorName: '',
+          schedulerName: currentUser?.name || '',
+          date: selectedDate,
+          startTime: '',
+          endTime: '',
+          services: [],
+        });
+        setPatientSearch('');
+        setSelectedServices([]);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error saving appointment:', error);
+      // Don't close dialog on error, let user try again
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
-    <div className={cn("flex gap-6", isPatientFormOpen ? "min-w-[800px]" : "")}>
-      {/* Main Appointment Form */}
-      <div className="flex-1 min-w-[400px]">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+    <div className="w-full">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="patientName"
@@ -229,17 +330,14 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                           variant="outline" 
                           size="icon" 
                           className="flex-shrink-0"
-                          onClick={() => {
-                            setIsPatientFormOpen(!isPatientFormOpen);
-                            setIsPatientSaved(false);
-                          }}
+                          onClick={() => setShowCustomerForm(true)}
                         >
                           <UserPlus className="h-4 w-4" />
                           <span className="sr-only">Thêm khách hàng mới</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{isPatientFormOpen ? 'Đóng form thêm khách hàng' : 'Thêm khách hàng mới'}</p>
+                        <p>Thêm khách hàng mới</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -361,43 +459,182 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, o
                 )}
                 />
             </div>
+
+            {/* Services Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <FormLabel>Dịch vụ</FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowServiceDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Thêm dịch vụ
+                </Button>
+              </div>
+
+              {selectedServices.length > 0 && (
+                <div className="space-y-2">
+                  {selectedServices.map((service) => (
+                    <div key={service.serviceId} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{service.serviceName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.unitPrice)} x {service.quantity}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.totalPrice)}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveService(service.serviceId)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-right text-sm font-medium pt-2 border-t">
+                    Tổng: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(getTotalServiceAmount())}
+                  </div>
+                </div>
+              )}
+
+              {selectedServices.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-4 border-2 border-dashed rounded-lg">
+                  Chưa chọn dịch vụ nào
+                </div>
+              )}
+            </div>
+
             <Button type="submit" className="w-full" disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSaving ? 'Đang lưu...' : (editingAppointment ? 'Lưu thay đổi' : 'Lưu lịch hẹn')}
             </Button>
           </form>
         </Form>
-      </div>
+      
+      {/* Customer Form Dialog */}
+      <Dialog open={showCustomerForm} onOpenChange={setShowCustomerForm}>
+        <DialogContent className="spa-dialog max-w-[95vw] sm:max-w-md max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="mobile-text-lg">
+              Thêm hồ sơ khách hàng mới
+            </DialogTitle>
+            <DialogDescription className="mobile-text-sm">
+              Nhập thông tin chi tiết cho khách hàng mới. Thông tin sẽ được tự động điền vào form lịch hẹn.
+            </DialogDescription>
+          </DialogHeader>
+          <SimplifiedCustomerForm
+            onSave={async (customerData) => {
+              // Convert Vietnamese gender values to English for Customer type
+              const convertGender = (gender: 'Nam' | 'Nữ' | 'Khác'): 'Male' | 'Female' | 'Other' => {
+                switch (gender) {
+                  case 'Nam': return 'Male';
+                  case 'Nữ': return 'Female';
+                  case 'Khác': return 'Other';
+                  default: return 'Other';
+                }
+              };
 
-      {/* Side Patient Form */}
-      {isPatientFormOpen && (
-        <div className="flex-1 min-w-[400px] border-l pl-6">
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold">Thêm hồ sơ khách hàng mới</h3>
-                <p className="text-sm text-muted-foreground">Nhập thông tin chi tiết cho khách hàng.</p>
-              </div>
-              <div className={cn("transition-opacity duration-200", isPatientSaved && "opacity-50 pointer-events-none")}>
-                <SimplifiedCustomerForm
-                  onSave={handleSaveNewCustomer}
-                  onClose={() => setIsPatientFormOpen(false)}
-                />
-              </div>
-              {isPatientSaved && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-800 font-medium">
-                    ✓ Khách hàng đã được thêm thành công!
-                  </p>
-                  <p className="text-xs text-green-600 mt-1">
-                    Thông tin đã được điền vào form lịch hẹn.
-                  </p>
+              // Ensure required fields are not undefined before calling handleSaveNewCustomer
+              const customerWithDefaults = {
+                ...customerData,
+                address: customerData.address || '',
+                birthYear: customerData.birthYear || new Date().getFullYear() - 30,
+                gender: convertGender(customerData.gender)
+              };
+              const newCustomer = await handleSaveNewCustomer(customerWithDefaults);
+              form.setValue('patientName', newCustomer.name, { shouldValidate: true });
+              setPatientSearch(newCustomer.name);
+              setShowCustomerForm(false);
+              return newCustomer;
+            }}
+            onClose={() => setShowCustomerForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Service Selection Dialog */}
+      <Dialog open={showServiceDialog} onOpenChange={setShowServiceDialog}>
+        <DialogContent className="spa-dialog max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="mobile-text-lg">
+              Chọn dịch vụ
+            </DialogTitle>
+            <DialogDescription className="mobile-text-sm">
+              Chọn các dịch vụ sẽ thực hiện trong lịch hẹn này.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Services by Category */}
+            {Object.entries(
+              services
+                .filter(service => service.isActive)
+                .reduce((acc, service) => {
+                  if (!acc[service.category]) {
+                    acc[service.category] = [];
+                  }
+                  acc[service.category].push(service);
+                  return acc;
+                }, {} as Record<string, SpaService[]>)
+            ).map(([category, categoryServices]) => (
+              <div key={category} className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">{category}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {categoryServices.map((service) => (
+                    <Card key={service.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleAddService(service)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-base">{service.name}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
+                            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                              <span>{service.duration} phút</span>
+                              {service.requiredStaff && (
+                                <span>• {Array.isArray(service.requiredStaff) ? service.requiredStaff.join(', ') : service.requiredStaff}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right ml-4">
+                            {service.discountPrice && service.discountPrice < service.price ? (
+                              <div className="space-y-1">
+                                <div className="text-sm font-medium text-green-600">
+                                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.discountPrice)}
+                                </div>
+                                <div className="text-xs text-muted-foreground line-through">
+                                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.price)}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm font-medium">
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.price)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              )}
-            </div>
-          </Card>
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowServiceDialog(false)}>
+              Đóng
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

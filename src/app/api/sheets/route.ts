@@ -23,7 +23,7 @@ import type {
 const COLLECTION_HEADERS = {
   patients: ['id', 'name', 'birthYear', 'gender', 'address', 'phone', 'citizenId', 'weight', 'lastVisit', 'avatarUrl', 'medicalHistory', 'documents'] as (keyof Patient)[],
   customers: ['id', 'name', 'birthYear', 'gender', 'address', 'phone', 'lastVisit', 'avatarUrl', 'tongChiTieu'] as (keyof Customer)[],
-  appointments: ['id', 'patientName', 'doctorName', 'date', 'startTime', 'endTime', 'status', 'notes'] as (keyof Appointment)[],
+  appointments: ['id', 'patientName', 'doctorName', 'schedulerName', 'date', 'startTime', 'endTime', 'status', 'services', 'notes'] as (keyof Appointment)[],
   medications: ['id', 'name', 'activeIngredient', 'concentration', 'dosageForm', 'unit', 'manufacturer', 'manufacturerCountry', 'registrationNumber', 'supplier', 'importPrice', 'sellPrice', 'storageLocation', 'minStockThreshold', 'batchNo', 'expiryDate', 'stock', 'status'] as (keyof Medication)[],
   invoices: ['id', 'patientName', 'date', 'items', 'amount', 'status'] as (keyof Invoice)[],
   staff: ['id', 'name', 'role', 'avatarUrl', 'phone', 'email', 'password', 'licenseNumber', 'licenseIssueDate', 'licenseIssuePlace', 'licenseExpiryDate'] as (keyof Staff)[],
@@ -79,6 +79,11 @@ export async function GET(request: NextRequest) {
     const headers = getHeaders(collection);
     
     const data = await getSheetData(sheetName, headers);
+    
+    console.log(`📊 GET /api/sheets - Collection: ${collection}, Records: ${data.length}`);
+    if (collection === 'appointments' && data.length > 0) {
+      console.log('🔍 Sample appointment data:', data[0]);
+    }
     
     return NextResponse.json({ data });
   } catch (error) {
