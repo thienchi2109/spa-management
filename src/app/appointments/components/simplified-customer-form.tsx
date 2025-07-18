@@ -16,9 +16,15 @@ import React from 'react';
 const simplifiedCustomerFormSchema = z.object({
   name: z.string().min(2, { message: 'Tên khách hàng phải có ít nhất 2 ký tự.' }),
   gender: z.enum(['Nam', 'Nữ', 'Khác'], { required_error: 'Vui lòng chọn giới tính.' }),
-  birthYear: z.coerce.number().min(1900).max(new Date().getFullYear()),
-  address: z.string(),
-  phone: z.string().regex(/^\d{10}$/, { message: 'Số điện thoại phải có 10 chữ số.' }),
+  birthYear: z.preprocess(
+    (arg) => (arg === '' || arg === null ? undefined : arg),
+    z.coerce.number({ invalid_type_error: 'Năm sinh phải là số.' })
+      .min(1900, 'Năm sinh phải sau năm 1900.')
+      .max(new Date().getFullYear(), 'Năm sinh không hợp lệ.')
+      .optional()
+  ),
+  address: z.string().optional(),
+  phone: z.string({ required_error: 'Vui lòng nhập số điện thoại.' }).regex(/^\d{10}$/, { message: 'Số điện thoại phải có 10 chữ số.' }),
 });
 
 type SimplifiedCustomerFormValues = z.infer<typeof simplifiedCustomerFormSchema>;
@@ -35,16 +41,14 @@ export function SimplifiedCustomerForm({ initialData, onSave, onClose }: Simplif
     const form = useForm<SimplifiedCustomerFormValues>({
         resolver: zodResolver(simplifiedCustomerFormSchema),
         defaultValues: initialData ? {
-            name: initialData.name || '',
-            gender: initialData.gender || 'Nam',
-            birthYear: initialData.birthYear || new Date().getFullYear() - 30,
-            address: initialData.address || '',
-            phone: initialData.phone || '',
+            ...initialData,
+            gender: initialData.gender === 'Male' ? 'Nam' : initialData.gender === 'Female' ? 'Nữ' : 'Khác',
+            birthYear: initialData.birthYear || undefined,
         } : {
             name: '',
             address: '',
             phone: '',
-            birthYear: new Date().getFullYear() - 30,
+            birthYear: undefined,
             gender: 'Nam',
         },
     });
@@ -108,7 +112,7 @@ export function SimplifiedCustomerForm({ initialData, onSave, onClose }: Simplif
                 
                 <FormField control={form.control} name="phone" render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-sm">Số điện thoại</FormLabel>
+                        <FormLabel className="text-sm">Số điện thoại *</FormLabel>
                         <FormControl><Input placeholder="0901234567" {...field} className="text-sm" /></FormControl>
                         <FormMessage />
                     </FormItem>

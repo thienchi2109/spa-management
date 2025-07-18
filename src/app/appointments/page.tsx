@@ -13,11 +13,11 @@ import {
 } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { formatDate, generatePatientId } from '@/lib/utils';
+import { formatDate, generateKhachHangId } from '@/lib/utils';
 import { DailyTimeline } from './components/daily-timeline';
 import { AppointmentForm } from './components/appointment-form';
 import { format } from 'date-fns';
-import type { Appointment, Patient, Customer, Invoice, InvoiceItem, Staff, MedicalRecord } from '@/lib/types';
+import type { Appointment, Customer, Invoice, InvoiceItem, Staff, MedicalRecord } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppointmentsTable } from './components/appointments-table';
@@ -137,13 +137,18 @@ export default function AppointmentsPage() {
   }, [appointmentsForSelectedDate, searchTerm, filters, invoices, refreshTrigger]);
 
   const staffForDay = useMemo(() => {
+    const activeStaff = staff.filter(s => s.role !== 'admin');
     const staffNamesOnSchedule = [
       ...new Set(appointmentsForSelectedDate.map((app) => app.doctorName)),
     ];
-    if (staffNamesOnSchedule.length === 0) {
-      return [];
+    const scheduledStaff = activeStaff.filter((s) => staffNamesOnSchedule.includes(s.name));
+    
+    // If no one is scheduled, show all active staff as options
+    if (scheduledStaff.length === 0) {
+      return activeStaff;
     }
-    return staff.filter((s) => staffNamesOnSchedule.includes(s.name));
+    
+    return scheduledStaff;
   }, [appointmentsForSelectedDate, staff]);
 
   const handleSaveAppointment = async (newAppointmentData: Omit<Appointment, 'id' | 'status'>) => {
@@ -294,44 +299,38 @@ export default function AppointmentsPage() {
     }
   };
 
-  const handleSavePatient = async (patientData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu'>): Promise<Customer> => {
+  const handleSavePatient = async (patientData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu' | 'createdAt'>): Promise<Customer> => {
     try {
-      console.log('🔄 Saving new patient:', patientData);
-
-      // Generate custom patient ID
-      const patientId = generatePatientId(patients);
-
-      const patientToAdd = {
+      const newPatientId = generateKhachHangId(patients);
+      const newPatient: Customer = {
+        id: newPatientId,
         ...patientData,
-        id: patientId,
-        lastVisit: new Date().toISOString().split('T')[0],
-        avatarUrl: 'https://placehold.co/100x100.png',
+        lastVisit: '',
+        avatarUrl: '',
         tongChiTieu: 0,
+        createdAt: new Date().toISOString(),
       };
 
-      console.log('📝 Patient data to add:', patientToAdd);
-
-      // Use optimistic update from cached data context
-      const newPatient = await addCustomerOptimistic(patientToAdd, async () => {
-        console.log('💾 Calling addCustomer API...');
-        return await addCustomer(patientToAdd); // Use addCustomer instead of addPatient
+      const result = await addCustomerOptimistic(newPatient, async () => {
+         return await addCustomer(newPatient);
       });
-
-      console.log('✅ Patient added successfully:', newPatient);
-
+      
       toast({
         title: 'Thêm thành công',
-        description: `Hồ sơ khách hàng ${newPatient.name} đã được tạo với mã ${patientId}.`,
+        description: 'Đã thêm khách hàng mới.',
       });
-      return newPatient;
+
+      // After saving, return the new patient data
+      return result;
     } catch (error) {
-      console.error("❌ Error adding patient: ", error);
+      console.error("Error adding patient: ", error);
       toast({
         variant: 'destructive',
-        title: 'Thêm thất bại',
-        description: 'Đã có lỗi xảy ra khi thêm khách hàng mới.',
+        title: 'Lỗi',
+        description: 'Không thể thêm khách hàng.',
       });
-      throw error; // Re-throw error to be caught by the caller form
+      // Re-throw the error to be caught by the caller if needed
+      throw error;
     }
   };
 
@@ -589,7 +588,6 @@ export default function AppointmentsPage() {
             onUpdateInvoiceStatus={handleUpdateInvoiceStatus}
             invoices={invoices}
             onCreateInvoice={setInvoiceCandidate}
-            onSaveMedicalRecord={handleSaveMedicalRecord}
             onEditAppointment={handleEditAppointment}
             onDeleteAppointment={handleDeleteAppointment}
             showResultsCount={true}
@@ -607,6 +605,7 @@ export default function AppointmentsPage() {
             <POSInvoiceForm
               patientName={invoiceCandidate.patientName}
               date={invoiceCandidate.date}
+              preSelectedServices={invoiceCandidate.services}
               onSave={handleSaveInvoice}
               onClose={() => setInvoiceCandidate(null)}
             />

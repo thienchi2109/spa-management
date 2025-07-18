@@ -1,18 +1,3 @@
-export interface Patient {
-  id: string;
-  name: string;
-  birthYear: number;
-  gender: 'Nam' | 'Nữ' | 'Male' | 'Female' | 'Other';
-  address: string;
-  phone: string;
-  citizenId: string;
-  weight: number;
-  lastVisit: string;
-  avatarUrl: string;
-  medicalHistory?: string[] | string;
-  documents?: PatientDocument[];
-}
-
 export interface Customer {
   id: string;
   name: string;
@@ -23,6 +8,11 @@ export interface Customer {
   lastVisit: string;
   avatarUrl: string;
   tongChiTieu: number; // Tổng chi tiêu của khách hàng
+  citizenId?: string; // Optional
+  weight?: number; // Optional
+  medicalHistory?: string[] | string; // Optional
+  documents?: PatientDocument[]; // Optional
+  createdAt?: string; // Optional, for tracking
 }
 
 export interface AppointmentService {

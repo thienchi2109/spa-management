@@ -3,7 +3,7 @@
 import type { Appointment, Staff, Invoice } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { CalendarSearch, CreditCard, CheckCircle2 } from 'lucide-react';
+import { CalendarSearch, CheckCircle2 } from 'lucide-react';
 import { AppointmentDetail } from './appointment-detail';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -30,10 +30,10 @@ const getStatusClasses = (status: Appointment['status']) => {
     }
 };
 
-const getInvoiceStatusVariant = (status: Invoice['status']): 'accent' | 'secondary' | 'destructive' | 'outline' => {
+const getInvoiceStatusVariant = (status: Invoice['status']): 'secondary' | 'destructive' | 'outline' => {
   switch (status) {
     case 'Paid':
-      return 'accent';
+      return 'secondary';
     case 'Pending':
       return 'outline';
     case 'Overdue':
@@ -91,14 +91,15 @@ export function DailyTimeline({
   }
 
   return (
-    <Card className="min-w-full w-max">
+    <Card className="w-full">
         <CardContent className="p-0">
-            <div
-                className="grid relative"
-                style={{
-                    gridTemplateColumns: `4rem repeat(${staff.length}, minmax(140px, 1fr))`,
-                }}
-            >
+            <div className="overflow-x-auto">
+                <div
+                    className="grid relative w-full"
+                    style={{
+                        gridTemplateColumns: `3rem repeat(${staff.length}, minmax(120px, 1fr))`,
+                    }}
+                >
                 {/* Time gutter with lines */}
                 <div className="sticky left-0 z-20 bg-card">
                     <div className="h-10 border-b border-r"></div> {/* Header space */}
@@ -166,8 +167,7 @@ export function DailyTimeline({
                                                         )}
                                                     </div>
                                                 )}
-                                                {/* Debug: Log services data */}
-                                                {process.env.NODE_ENV === 'development' && appointment.services && console.log('🔍 Services for appointment', appointment.id, ':', appointment.services)}
+
                                             </div>
                                             {invoice && (
                                                 <div className="flex-shrink-0 mt-1">
@@ -201,6 +201,7 @@ export function DailyTimeline({
                         })}
                     </div>
                 ))}
+                </div>
             </div>
         </CardContent>
     </Card>

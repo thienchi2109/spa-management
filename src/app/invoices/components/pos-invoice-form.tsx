@@ -63,6 +63,13 @@ type POSInvoiceFormValues = z.infer<typeof posInvoiceFormSchema>;
 interface POSInvoiceFormProps {
   patientName: string;
   date: string;
+  preSelectedServices?: Array<{
+    serviceId: string;
+    serviceName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
   onSave: (invoiceData: {
     items: Array<{
       name: string;
@@ -80,7 +87,7 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 };
 
-export function POSInvoiceForm({ patientName, date, onSave, onClose }: POSInvoiceFormProps) {
+export function POSInvoiceForm({ patientName, date, preSelectedServices, onSave, onClose }: POSInvoiceFormProps) {
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { services, isLoadingServices } = useData();
@@ -88,7 +95,14 @@ export function POSInvoiceForm({ patientName, date, onSave, onClose }: POSInvoic
   const form = useForm<POSInvoiceFormValues>({
     resolver: zodResolver(posInvoiceFormSchema),
     defaultValues: {
-      items: [],
+      items: preSelectedServices?.map(service => ({
+        serviceId: service.serviceId,
+        serviceName: service.serviceName,
+        quantity: service.quantity,
+        unitPrice: service.unitPrice,
+        totalPrice: service.totalPrice,
+        discount: 0,
+      })) || [],
       customerDiscount: 0,
       notes: '',
     },
