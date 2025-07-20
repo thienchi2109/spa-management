@@ -311,17 +311,18 @@ export default function AppointmentsPage() {
         createdAt: new Date().toISOString(),
       };
 
-      const result = await addCustomerOptimistic(newPatient, async () => {
+      await addCustomerOptimistic(newPatient, async () => {
          return await addCustomer(newPatient);
       });
-      
+
       toast({
         title: 'Thêm thành công',
         description: 'Đã thêm khách hàng mới.',
       });
 
-      // After saving, return the new patient data
-      return result;
+      // Return the new patient data we created
+      console.log('📋 handleSavePatient returning:', newPatient);
+      return newPatient;
     } catch (error) {
       console.error("Error adding patient: ", error);
       toast({

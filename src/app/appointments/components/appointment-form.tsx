@@ -78,18 +78,11 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, s
   const [showServiceDialog, setShowServiceDialog] = useState(false);
   const [selectedServices, setSelectedServices] = useState<AppointmentService[]>([]);
   const [dialogSelectedServices, setDialogSelectedServices] = useState<SpaService[]>([]);
+  const [showAddToAppointmentDialog, setShowAddToAppointmentDialog] = useState(false);
+  const [newCustomerToAdd, setNewCustomerToAdd] = useState<Customer | null>(null);
 
   const { currentUser } = useAuth();
   const { refetchCustomers } = useData();
-
-  const filteredPatients = useMemo(() => {
-    if (!patientSearch) return [];
-    return patients.filter((patient) =>
-      patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      patient.phone?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      patient.address?.toLowerCase().includes(patientSearch.toLowerCase())
-    );
-  }, [patientSearch, patients]);
 
   const appointmentFormSchema = useMemo(() => {
     return baseAppointmentFormSchema.refine(
@@ -125,6 +118,15 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, s
     },
   });
 
+  const filteredPatients = useMemo(() => {
+    if (!patientSearch) return [];
+    return patients.filter((patient) =>
+      patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.phone?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.address?.toLowerCase().includes(patientSearch.toLowerCase())
+    );
+  }, [patientSearch, patients]);
+
   useEffect(() => {
     if (editingAppointment) {
       form.reset({
@@ -153,27 +155,66 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, s
     }
   }, [editingAppointment, selectedDate, currentUser, form]);
 
+  // Debug useEffect
+  useEffect(() => {
+    console.log('🎯 State changed - showAddToAppointmentDialog:', showAddToAppointmentDialog, 'newCustomerToAdd:', newCustomerToAdd);
+    if (showAddToAppointmentDialog === false && newCustomerToAdd === null) {
+      console.log('⚠️ State was reset! Stack trace:', new Error().stack);
+    }
+  }, [showAddToAppointmentDialog, newCustomerToAdd]);
+
   async function handleSaveNewCustomer(customerData: Omit<Customer, 'id' | 'lastVisit' | 'avatarUrl' | 'tongChiTieu' | 'createdAt'>) {
+    console.log('🔄 handleSaveNewCustomer called with:', customerData);
     try {
       const newPatient = await onSavePatient(customerData);
-      
+      console.log('✅ onSavePatient returned:', newPatient);
+
       if (newPatient) {
-        // Update form with new patient's name
-        form.setValue('patientName', newPatient.name, { shouldValidate: true });
-        setPatientSearch(newPatient.name);
-        
-        // Close the customer form dialog and refresh patient list
+        // Close the customer creation dialog first
         setShowCustomerForm(false);
+        console.log('🔄 Closed customer form dialog');
+
+        // Store the new customer and show confirmation dialog FIRST
+        console.log('🎯 Setting up confirmation dialog for:', newPatient.name);
+        console.log('🎯 About to set newCustomerToAdd to:', newPatient);
+        setNewCustomerToAdd(newPatient);
+        console.log('🎯 About to set showAddToAppointmentDialog to true');
+        setShowAddToAppointmentDialog(true);
+        console.log('🎯 Dialog state should be true now');
+
+        // Refresh patient list AFTER setting dialog state
         await refetchCustomers();
-        
+        console.log('🔄 Refreshed customers list');
+
         return newPatient;
+      } else {
+        console.warn('⚠️ onSavePatient returned null/undefined');
       }
     } catch (error) {
-      console.error('Failed to save and update form with new customer:', error);
-      // Let the caller handle the error toast
+      console.error('❌ Failed to save customer:', error);
       throw error;
     }
   }
+
+  const handleAddCustomerToAppointment = () => {
+    console.log('🎯 handleAddCustomerToAppointment called');
+    if (newCustomerToAdd) {
+      // Add customer to appointment form
+      form.setValue('patientName', newCustomerToAdd.name, { shouldValidate: true });
+      setPatientSearch(newCustomerToAdd.name);
+      console.log('✅ Added customer to appointment form:', newCustomerToAdd.name);
+    }
+    // Close dialog and reset state
+    setShowAddToAppointmentDialog(false);
+    setNewCustomerToAdd(null);
+  };
+
+  const handleSkipAddingCustomer = () => {
+    // Just close dialog without adding
+    setShowAddToAppointmentDialog(false);
+    setNewCustomerToAdd(null);
+    console.log('ℹ️ User chose not to add customer to appointment form');
+  };
 
   const handleRemoveService = (serviceId: string) => {
     setSelectedServices(prev => prev.filter(s => s.serviceId !== serviceId));
@@ -289,7 +330,7 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, s
                           value={patientSearch}
                           onChange={(e) => {
                             setPatientSearch(e.target.value);
-                            if (field.value) field.onChange(undefined);
+                            field.onChange(e.target.value);
                             if (!isPatientListVisible) setIsPatientListVisible(true);
                           }}
                           onFocus={() => setIsPatientListVisible(true)}
@@ -589,6 +630,27 @@ export function AppointmentForm({ selectedDate, staff, appointments, patients, s
           <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setShowServiceDialog(false)}>Hủy</Button>
             <Button onClick={handleConfirmServiceSelection}>Xác nhận</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog xác nhận thêm khách hàng vào lịch hẹn */}
+      <Dialog open={showAddToAppointmentDialog} onOpenChange={setShowAddToAppointmentDialog}>
+        <DialogContent className="spa-dialog max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Thêm vào lịch hẹn?</DialogTitle>
+            <DialogDescription className="text-sm">
+              Khách hàng <span className="font-semibold">{newCustomerToAdd?.name}</span> đã được tạo thành công.
+              Bạn có muốn thêm khách hàng này vào form tạo lịch hẹn không?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={handleSkipAddingCustomer}>
+              Hủy
+            </Button>
+            <Button onClick={handleAddCustomerToAppointment}>
+              Thêm vào lịch hẹn
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

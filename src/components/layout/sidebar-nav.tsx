@@ -12,17 +12,17 @@ import {
   LayoutDashboard,
   Calendar,
   Users,
-  Pill,
   FileText,
-  Stethoscope,
+  UserCog,
+  ClipboardList,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Bảng điều khiển', icon: LayoutDashboard },
   { href: '/appointments', label: 'Lịch hẹn', icon: Calendar },
   { href: '/patients', label: 'Khách hàng', icon: Users },
-  { href: '/staff', label: 'Kỹ thuật viên', icon: Stethoscope },
-  { href: '/inventory', label: 'Dịch vụ', icon: Pill },
+  { href: '/staff', label: 'Kỹ thuật viên', icon: UserCog },
+  { href: '/inventory', label: 'Dịch vụ', icon: ClipboardList },
   { href: '/invoices', label: 'Hóa đơn', icon: FileText },
 ];
 
@@ -34,7 +34,7 @@ export function SidebarNav() {
       <SidebarContent className="p-2 pt-4">
         <SidebarMenu>
           {navItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.href} className="my-1">
                 <SidebarMenuButton
                     asChild
                     isActive={pathname === item.href}

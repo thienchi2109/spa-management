@@ -41,9 +41,11 @@ export function SimplifiedCustomerForm({ initialData, onSave, onClose }: Simplif
     const form = useForm<SimplifiedCustomerFormValues>({
         resolver: zodResolver(simplifiedCustomerFormSchema),
         defaultValues: initialData ? {
-            ...initialData,
+            name: initialData.name,
             gender: initialData.gender === 'Male' ? 'Nam' : initialData.gender === 'Female' ? 'Nữ' : 'Khác',
             birthYear: initialData.birthYear || undefined,
+            address: initialData.address || '',
+            phone: initialData.phone,
         } : {
             name: '',
             address: '',
@@ -59,15 +61,12 @@ export function SimplifiedCustomerForm({ initialData, onSave, onClose }: Simplif
         try {
             const result = await onSave(data);
             console.log('✅ SimplifiedCustomerForm save result:', result);
+            // Don't auto-close - let parent component handle dialog management
+            // onClose();
         } catch (error) {
             console.error('❌ SimplifiedCustomerForm save error:', error);
             // Error is handled by the caller component's toast
-        } finally {
-            // Only set isSaving to false if the component is still mounted.
-            // If onSave closes the dialog, this could cause a memory leak warning.
-            if (form.formState.isSubmitting) {
-               setIsSaving(false);
-            }
+            setIsSaving(false);
         }
     }
 
